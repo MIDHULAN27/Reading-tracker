@@ -29,18 +29,20 @@ export default function Discover() {
   const [recentSearches, setRecentSearches] = useState([]);
   const [recentPaperSearches, setRecentPaperSearches] = useState([]);
 
-  // Spotify/Netflix 10 book categories
+  // Spotify/Netflix 12 book categories
   const [categoriesData, setCategoriesData] = useState({
-    trending: { title: 'Trending Reads Today', books: [], loading: true },
+    trending: { title: 'Trending Reads', books: [], loading: true },
     free: { title: 'Free Classics', books: [], loading: true },
     classics: { title: 'Timeless Masterpieces', books: [], loading: true },
     fantasy: { title: 'Fantasy & Magic', books: [], loading: true },
     scifi: { title: 'Science Fiction', books: [], loading: true },
     mystery: { title: 'Mystery & Detective', books: [], loading: true },
     romance: { title: 'Romance Classics', books: [], loading: true },
-    selfHelp: { title: 'Self-Help & Mindset', books: [], loading: true },
-    adventure: { title: 'Action & Adventure', books: [], loading: true },
-    productivity: { title: 'Success & Productivity', books: [], loading: true },
+    philosophy: { title: 'Philosophy', books: [], loading: true },
+    horror: { title: 'Horror', books: [], loading: true },
+    adventure: { title: 'Adventure', books: [], loading: true },
+    selfHelp: { title: 'Self Help', books: [], loading: true },
+    historical: { title: 'Historical Fiction', books: [], loading: true },
   });
 
   const scrollRefs = useRef({});
@@ -183,9 +185,11 @@ export default function Discover() {
       fetchAndSet('scifi', null, 'Sci-Fi');
       fetchAndSet('mystery', null, 'Mystery');
       fetchAndSet('romance', null, 'Romance');
-      fetchAndSet('selfHelp', null, 'Self-Help');
+      fetchAndSet('philosophy', null, 'Philosophy');
+      fetchAndSet('horror', null, 'Horror');
       fetchAndSet('adventure', null, 'Adventure');
-      fetchAndSet('productivity', null, 'Productivity');
+      fetchAndSet('selfHelp', null, 'Self-Help');
+      fetchAndSet('historical', null, 'Historical-Fiction');
     }
 
     loadCategories();
@@ -420,13 +424,80 @@ export default function Discover() {
       scifi: 'Science Fiction',
       mystery: 'Mystery',
       romance: 'Romance',
-      selfHelp: 'Self-Help',
+      philosophy: 'Philosophy',
+      horror: 'Horror',
       adventure: 'Adventure',
-      productivity: 'Productivity'
+      selfHelp: 'Self-Help',
+      historical: 'History'
     };
     const searchGenre = genreMappings[key] || title;
     setQuery(searchGenre);
   };
+
+  // Smart Client-side Duplicate Cleaner and Daily Shuffler
+  // Ensures absolutely no duplicates across categories, shuffles them daily dynamically,
+  // and yields a stunning personalized experience.
+  const cleanCategoriesData = React.useMemo(() => {
+    const seenIds = new Set();
+    const seenTitles = new Set();
+    const cleanData = {};
+
+    const categoryOrder = [
+      'trending', 'free', 'classics', 'fantasy', 'scifi', 
+      'mystery', 'romance', 'philosophy', 'horror', 
+      'adventure', 'selfHelp', 'historical'
+    ];
+
+    // Simple deterministic daily shuffler based on date
+    const today = new Date();
+    const dailySeed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+
+    const shuffleWithSeed = (array, seed) => {
+      let m = array.length, t, i;
+      let rand = () => {
+        let x = Math.sin(seed++) * 10000;
+        return x - Math.floor(x);
+      };
+      while (m) {
+        i = Math.floor(rand() * m--);
+        t = array[m];
+        array[m] = array[i];
+        array[i] = t;
+      }
+      return array;
+    };
+
+    categoryOrder.forEach(key => {
+      const cat = categoriesData[key];
+      if (!cat) return;
+
+      const uniqueBooks = [];
+      if (cat.books) {
+        cat.books.forEach(book => {
+          const titleNorm = book.title.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const authorNorm = book.author ? book.author.toLowerCase().replace(/[^a-z0-9]/g, '').trim() : '';
+          const compositeKey = `${titleNorm}-${authorNorm}`;
+          
+          if (!seenIds.has(book.id) && !seenTitles.has(compositeKey)) {
+            seenIds.add(book.id);
+            seenTitles.add(compositeKey);
+            uniqueBooks.push(book);
+          }
+        });
+      }
+
+      // Shuffle books daily to keep the discover page fresh
+      let shuffledBooks = [...uniqueBooks];
+      shuffledBooks = shuffleWithSeed(shuffledBooks, dailySeed + key.charCodeAt(0));
+
+      cleanData[key] = {
+        ...cat,
+        books: shuffledBooks
+      };
+    });
+
+    return cleanData;
+  }, [categoriesData]);
 
   // Client side filters application (for books only)
   const filteredResults = bookResults.filter(book => {
@@ -694,7 +765,7 @@ export default function Discover() {
 
             {activeTab === 'books' ? (
               <div className="space-y-8">
-                {Object.entries(categoriesData).map(([key, category]) => {
+                {Object.entries(cleanCategoriesData).map(([key, category]) => {
                   const getDotColorClass = (k) => {
                     const colors = {
                       trending: 'bg-cozy-amber animate-pulse',
@@ -704,9 +775,11 @@ export default function Discover() {
                       scifi: 'bg-indigo-500',
                       mystery: 'bg-zinc-500',
                       romance: 'bg-pink-500',
-                      selfHelp: 'bg-teal-500',
+                      philosophy: 'bg-indigo-400',
+                      horror: 'bg-red-600',
                       adventure: 'bg-sky-500',
-                      productivity: 'bg-amber-500',
+                      selfHelp: 'bg-teal-500',
+                      historical: 'bg-amber-700',
                     };
                     return colors[k] || 'bg-cozy-amber';
                   };

@@ -91,107 +91,79 @@ const formatGutenbergBook = (doc, genreOverride = null) => {
 // Highly-Curated legal public-domain self-help / productivity books
 const CURATED_SELF_HELP = [
   {
-    id: '2680', title: 'Meditations', author: 'Marcus Aurelius',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2680/pg2680.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2680/pg2680.epub' },
-    authors: [{ name: 'Aurelius, Marcus', birth_year: 121 }], download_count: 85000, subjects: ['Philosophy', 'Stoicism', 'Ethics']
-  },
-  {
-    id: '15654', title: 'As a Man Thinketh', author: 'James Allen',
+    id: '15654', title: 'As a Man Thinketh',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/15654/pg15654.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/15654/pg15654.epub' },
     authors: [{ name: 'Allen, James', birth_year: 1864 }], download_count: 72000, subjects: ['Self-Help', 'Mindset', 'Inspiration']
   },
   {
-    id: '13446', title: 'The Art of Money Getting', author: 'P. T. Barnum',
+    id: '13446', title: 'The Art of Money Getting',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/13446/pg13446.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/13446/pg13446.epub' },
     authors: [{ name: 'Barnum, P. T.', birth_year: 1810 }], download_count: 31000, subjects: ['Personal Finance', 'Success', 'Productivity']
   },
   {
-    id: '2274', title: 'How to Live on 24 Hours a Day', author: 'Arnold Bennett',
+    id: '2274', title: 'How to Live on 24 Hours a Day',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2274/pg2274.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2274/pg2274.epub' },
     authors: [{ name: 'Bennett, Arnold', birth_year: 1867 }], download_count: 28000, subjects: ['Productivity', 'Time Management', 'Self-Improvement']
   },
   {
-    id: '16847', title: 'The Power of Concentration', author: 'Theron Q. Dumont',
+    id: '16847', title: 'The Power of Concentration',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/16847/pg16847.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/16847/pg16847.epub' },
     authors: [{ name: 'Dumont, Theron Q.', birth_year: 1862 }], download_count: 24000, subjects: ['Psychology', 'Mental discipline', 'Self-Help']
   },
   {
-    id: '13700', title: 'Self Help; with Illustrations of Character and Conduct', author: 'Samuel Smiles',
+    id: '13700', title: 'Self Help; with Illustrations of Character and Conduct',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/13700/pg13700.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/13700/pg13700.epub' },
     authors: [{ name: 'Smiles, Samuel', birth_year: 1812 }], download_count: 14000, subjects: ['Self-Improvement', 'Perseverance', 'Biography']
   },
   {
-    id: '18451', title: 'An Iron Will', author: 'Orison Swett Marden',
+    id: '18451', title: 'An Iron Will',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/18451/pg18451.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/18451/pg18451.epub' },
     authors: [{ name: 'Marden, Orison Swett', birth_year: 1848 }], download_count: 12000, subjects: ['Will power', 'Determination', 'Success']
   },
   {
-    id: '2362', title: 'Mental Efficiency, and Other Hints to Men and Women', author: 'Arnold Bennett',
+    id: '2362', title: 'Mental Efficiency, and Other Hints to Men and Women',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2362/pg2362.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2362/pg2362.epub' },
     authors: [{ name: 'Bennett, Arnold', birth_year: 1867 }], download_count: 9500, subjects: ['Intellectual efficiency', 'Practical living']
   },
   {
-    id: '24508', title: 'The Mastery of Destiny', author: 'James Allen',
+    id: '24508', title: 'The Mastery of Destiny',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/24508/pg24508.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/24508/pg24508.epub' },
     authors: [{ name: 'Allen, James', birth_year: 1864 }], download_count: 8200, subjects: ['Mind and body', 'Self-improvement', 'Destiny']
   },
   {
-    id: '13415', title: 'Character', author: 'Samuel Smiles',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/13415/pg13415.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/13415/pg13415.epub' },
-    authors: [{ name: 'Smiles, Samuel', birth_year: 1812 }], download_count: 7500, subjects: ['Ethics', 'Character development', 'Conduct of life']
-  }
-];
-
-const CURATED_PRODUCTIVITY = [
-  {
-    id: '2274', title: 'How to Live on 24 Hours a Day', author: 'Arnold Bennett',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2274/pg2274.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2274/pg2274.epub' },
-    authors: [{ name: 'Bennett, Arnold', birth_year: 1867 }], download_count: 28000, subjects: ['Productivity', 'Time Management', 'Self-Improvement']
-  },
-  {
-    id: '13446', title: 'The Art of Money Getting', author: 'P. T. Barnum',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/13446/pg13446.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/13446/pg13446.epub' },
-    authors: [{ name: 'Barnum, P. T.', birth_year: 1810 }], download_count: 31000, subjects: ['Personal Finance', 'Success', 'Productivity']
-  },
-  {
-    id: '27958', title: 'Self-Culture: Intellectual, Physical, and Moral', author: 'John Stuart Blackie',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/27958/pg27958.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/27958/pg27958.epub' },
-    authors: [{ name: 'Blackie, John Stuart', birth_year: 1809 }], download_count: 6500, subjects: ['Self-Culture', 'Education', 'Mental Growth']
-  },
-  {
-    id: '13415', title: 'Character', author: 'Samuel Smiles',
+    id: '13415', title: 'Character',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/13415/pg13415.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/13415/pg13415.epub' },
     authors: [{ name: 'Smiles, Samuel', birth_year: 1812 }], download_count: 7500, subjects: ['Ethics', 'Character development', 'Conduct of life']
   },
   {
-    id: '35055', title: 'The Empire of Business', author: 'Andrew Carnegie',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/35055/pg35055.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/35055/pg35055.epub' },
-    authors: [{ name: 'Carnegie, Andrew', birth_year: 1835 }], download_count: 11000, subjects: ['Business', 'Wealth', 'Industry', 'Success']
-  },
-  {
-    id: '14418', title: 'Thrift', author: 'Samuel Smiles',
+    id: '14418', title: 'Thrift',
     formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/14418/pg14418.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/14418/pg14418.epub' },
     authors: [{ name: 'Smiles, Samuel', birth_year: 1812 }], download_count: 9800, subjects: ['Thrift', 'Industry', 'Economy']
   },
   {
-    id: '15654', title: 'As a Man Thinketh', author: 'James Allen',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/15654/pg15654.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/15654/pg15654.epub' },
-    authors: [{ name: 'Allen, James', birth_year: 1864 }], download_count: 72000, subjects: ['Self-Help', 'Mindset', 'Inspiration']
+    id: '368', title: 'Acres of Diamonds',
+    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/368/pg368.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/368/pg368.epub' },
+    authors: [{ name: 'Conwell, Russell H.', birth_year: 1843 }], download_count: 15000, subjects: ['Success', 'Motivation', 'Inspiration']
   },
   {
-    id: '16847', title: 'The Power of Concentration', author: 'Theron Q. Dumont',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/16847/pg16847.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/16847/pg16847.epub' },
-    authors: [{ name: 'Dumont, Theron Q.', birth_year: 1862 }], download_count: 24000, subjects: ['Psychology', 'Mental discipline', 'Self-Help']
+    id: '1219', title: 'Thought Vibration',
+    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/1219/pg1219.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/1219/pg1219.epub' },
+    authors: [{ name: 'Atkinson, William Walker', birth_year: 1862 }], download_count: 22000, subjects: ['Law of Attraction', 'Self-Help', 'Mindset']
   },
   {
-    id: '2680', title: 'Meditations', author: 'Marcus Aurelius',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2680/pg2680.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2680/pg2680.epub' },
-    authors: [{ name: 'Aurelius, Marcus', birth_year: 121 }], download_count: 85000, subjects: ['Philosophy', 'Stoicism', 'Ethics']
+    id: '18605', title: 'Memory: How to Develop, Train and Use It',
+    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/18605/pg18605.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/18605/pg18605.epub' },
+    authors: [{ name: 'Atkinson, William Walker', birth_year: 1862 }], download_count: 18000, subjects: ['Memory training', 'Productivity', 'Self-Help']
   },
   {
-    id: '2362', title: 'Mental Efficiency, and Other Hints to Men and Women', author: 'Arnold Bennett',
-    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2362/pg2362.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2362/pg2362.epub' },
-    authors: [{ name: 'Bennett, Arnold', birth_year: 1867 }], download_count: 9500, subjects: ['Intellectual efficiency', 'Practical living']
+    id: '30046', title: 'The Art of Logical Thinking',
+    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/30046/pg30046.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/30046/pg30046.epub' },
+    authors: [{ name: 'Atkinson, William Walker', birth_year: 1862 }], download_count: 11000, subjects: ['Logic', 'Mind training', 'Self-Improvement']
+  },
+  {
+    id: '2841', title: 'The Human Machine',
+    formats: { 'image/jpeg': 'https://www.gutenberg.org/cache/epub/2841/pg2841.cover.medium.jpg', 'application/epub+zip': 'https://www.gutenberg.org/cache/epub/2841/pg2841.epub' },
+    authors: [{ name: 'Bennett, Arnold', birth_year: 1867 }], download_count: 8500, subjects: ['Self-Improvement', 'Philosophy of life']
   }
 ];
 
@@ -209,7 +181,7 @@ async function fetchGutenbergBooks(urlParams, cacheKey, categoryName = null) {
       const normalized = response.data.results
         .filter(item => item.formats && item.formats['application/epub+zip']) // Ensure reflowable EPUB is available
         .map(item => formatGutenbergBook(item, categoryName))
-        .slice(0, 10); // Limit to exactly 10 books
+        .slice(0, 28); // Fetch up to 28 unique books per endpoint to ensure client has plenty to deduplicate
 
       memoryCache.set(cacheKey, {
         data: normalized,
@@ -233,24 +205,49 @@ async function fetchGutenbergBooks(urlParams, cacheKey, categoryName = null) {
 // REUSABLE SERVICES
 export async function fetchTrendingBooks() {
   // Sorted by download count (popularity) automatically in Gutenberg
-  return fetchGutenbergBooks({}, 'trending', 'Trending');
+  return fetchGutenbergBooks({}, 'trending', 'Trending Reads');
 }
 
 export async function fetchFreeBooks() {
-  // Simply fetches a popular page, representing rich free items
-  return fetchGutenbergBooks({ page: 2 }, 'free_reads', 'Free Reads');
+  // Simply fetches a popular page, representing rich free items (using page 2 to avoid duplicate trending items)
+  return fetchGutenbergBooks({ page: 2 }, 'free_reads', 'Free Classics');
 }
 
 export async function fetchClassicBooks() {
-  return fetchGutenbergBooks({ topic: 'fiction' }, 'classics', 'Classics');
+  // Fetch popular page 3 to offset and avoid overlapping with trending/free
+  return fetchGutenbergBooks({ page: 3 }, 'classics', 'Timeless Masterpieces');
 }
 
 export async function fetchFantasyBooks() {
-  return fetchGutenbergBooks({ topic: 'fantasy' }, 'fantasy', 'Fantasy');
+  return fetchGutenbergBooks({ topic: 'fantasy' }, 'fantasy', 'Fantasy & Magic');
 }
 
 export async function fetchSciFiBooks() {
-  return fetchGutenbergBooks({ topic: 'science fiction' }, 'scifi', 'Sci-Fi');
+  return fetchGutenbergBooks({ topic: 'science fiction' }, 'scifi', 'Science Fiction');
+}
+
+export async function fetchMysteryBooks() {
+  return fetchGutenbergBooks({ topic: 'mystery' }, 'mystery', 'Mystery & Detective');
+}
+
+export async function fetchRomanceBooks() {
+  return fetchGutenbergBooks({ topic: 'romance' }, 'romance', 'Romance Classics');
+}
+
+export async function fetchPhilosophyBooks() {
+  return fetchGutenbergBooks({ topic: 'philosophy' }, 'philosophy', 'Philosophy');
+}
+
+export async function fetchHorrorBooks() {
+  return fetchGutenbergBooks({ topic: 'horror' }, 'horror', 'Horror');
+}
+
+export async function fetchAdventureBooks() {
+  return fetchGutenbergBooks({ topic: 'adventure' }, 'adventure', 'Adventure');
+}
+
+export async function fetchHistoricalFictionBooks() {
+  return fetchGutenbergBooks({ topic: 'historical fiction' }, 'historical', 'Historical Fiction');
 }
 
 // DYNAMIC CATEGORY RESOLUTION mapping
@@ -259,29 +256,25 @@ async function fetchCategoryBooks(genre) {
   const cacheKey = `category_${genreLower}`;
   
   if (genreLower === 'trending') return fetchTrendingBooks();
-  if (genreLower === 'free' || genreLower === 'free reads') return fetchFreeBooks();
-  if (genreLower === 'classics') return fetchClassicBooks();
-  if (genreLower === 'fantasy') return fetchFantasyBooks();
-  if (genreLower === 'sci-fi' || genreLower === 'scifi') return fetchSciFiBooks();
+  if (genreLower === 'free' || genreLower === 'free reads' || genreLower === 'free-classics') return fetchFreeBooks();
+  if (genreLower === 'classics' || genreLower === 'timeless-masterpieces') return fetchClassicBooks();
+  if (genreLower === 'fantasy' || genreLower === 'fantasy-magic') return fetchFantasyBooks();
+  if (genreLower === 'sci-fi' || genreLower === 'scifi' || genreLower === 'science-fiction') return fetchSciFiBooks();
+  if (genreLower === 'mystery' || genreLower === 'mystery-detective') return fetchMysteryBooks();
+  if (genreLower === 'romance' || genreLower === 'romance-classics') return fetchRomanceBooks();
+  if (genreLower === 'philosophy') return fetchPhilosophyBooks();
+  if (genreLower === 'horror') return fetchHorrorBooks();
+  if (genreLower === 'adventure') return fetchAdventureBooks();
+  if (genreLower === 'historical-fiction' || genreLower === 'historicalfiction' || genreLower === 'historical') return fetchHistoricalFictionBooks();
 
-  // Curated Fallbacks for Modern categories with sparse Gutenberg collections
-  if (genreLower === 'self-help' || genreLower === 'selfhelp') {
-    const formatted = CURATED_SELF_HELP.map(b => formatGutenbergBook(b, 'Self-Help'));
-    return formatted.slice(0, 10);
-  }
-  if (genreLower === 'productivity') {
-    const formatted = CURATED_PRODUCTIVITY.map(b => formatGutenbergBook(b, 'Productivity'));
-    return formatted.slice(0, 10);
+  // Curated fallback for Self Help / Productivity with sparse Gutenberg collections
+  if (genreLower === 'self-help' || genreLower === 'selfhelp' || genreLower === 'self help') {
+    const formatted = CURATED_SELF_HELP.map(b => formatGutenbergBook(b, 'Self Help'));
+    return formatted;
   }
 
   // Gutendex dynamic topic mappings
-  let topic = genre;
-  if (genreLower === 'romance') topic = 'romance';
-  else if (genreLower === 'mystery') topic = 'mystery';
-  else if (genreLower === 'philosophy') topic = 'philosophy';
-  else if (genreLower === 'adventure') topic = 'adventure';
-
-  return fetchGutenbergBooks({ topic }, cacheKey, genre);
+  return fetchGutenbergBooks({ topic: genre }, cacheKey, genre);
 }
 
 // REST ENDPOINTS
@@ -331,9 +324,7 @@ app.get('/api/books/category/:genre', async (req, res) => {
 app.get('/api/books/detail/:id', async (req, res) => {
   const { id } = req.params;
   const selfHelp = CURATED_SELF_HELP.find(b => String(b.id) === String(id));
-  if (selfHelp) return res.json(formatGutenbergBook(selfHelp, 'Self-Help'));
-  const prod = CURATED_PRODUCTIVITY.find(b => String(b.id) === String(id));
-  if (prod) return res.json(formatGutenbergBook(prod, 'Productivity'));
+  if (selfHelp) return res.json(formatGutenbergBook(selfHelp, 'Self Help'));
   
   for (const [_, cacheEntry] of memoryCache.entries()) {
     const found = cacheEntry.data.find(b => String(b.id) === String(id));
