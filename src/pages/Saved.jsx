@@ -1,0 +1,420 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Bookmark, BookmarkCheck, BookOpen, Quote, Calendar, Trash2, 
+  Search, SlidersHorizontal, ArrowUpRight, Compass, RefreshCw, 
+  Star, Heart, Plus, AlertCircle 
+} from 'lucide-react';
+import { useLibraryStore } from '../store/useLibraryStore';
+import { usePaperStore } from '../store/usePaperStore';
+
+export default function Saved() {
+  const [activeSegment, setActiveSegment] = useState('books'); // 'books' or 'papers'
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const { books, loading: loadingBooks, fetchBooks, deleteBook, updateBook } = useLibraryStore();
+  const { savedPapers, loading: loadingPapers, fetchSavedPapers, unbookmarkPaper } = usePaperStore();
+
+  useEffect(() => {
+    fetchBooks();
+    fetchSavedPapers();
+  }, [fetchBooks, fetchSavedPapers]);
+
+  // Filters matching active segment
+  const filteredBooks = books.filter(book => {
+    const titleMatch = book.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const authorMatch = book.author.toLowerCase().includes(searchQuery.toLowerCase());
+    const genreMatch = (book.genre || '').toLowerCase().includes(searchQuery.toLowerCase());
+    return titleMatch || authorMatch || genreMatch;
+  });
+
+  const filteredPapers = savedPapers.filter(paper => {
+    const titleMatch = paper.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const abstractMatch = (paper.abstract || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const authorMatch = paper.authors.some(auth => auth.toLowerCase().includes(searchQuery.toLowerCase()));
+    const fieldsMatch = paper.fields.some(field => field.toLowerCase().includes(searchQuery.toLowerCase()));
+    return titleMatch || abstractMatch || authorMatch || fieldsMatch;
+  });
+
+  const handleToggleFavorite = async (book, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await updateBook(book.id, { favorite: !book.favorite });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteBook = async (bookId, title, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm(`Remove "${title}" and all its logs from your library shelf?`)) {
+      try {
+        await deleteBook(bookId);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleUnbookmarkPaper = async (paperId, title, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm(`Unbookmark research paper: "${title}"?`)) {
+      try {
+        await unbookmarkPaper(paperId);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+  };
+
+  const isSegmentLoading = activeSegment === 'books' ? loadingBooks : loadingPapers;
+
+  return (
+    <div className="relative min-h-screen pb-16">
+      {/* Background glowing effects */}
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full ambient-glow-1 pointer-events-none" />
+      <div className="absolute bottom-1/3 left-1/4 w-[450px] h-[450px] rounded-full ambient-glow-2 pointer-events-none" />
+
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 sm:space-y-8 relative z-10">
+        
+        {/* Header Title */}
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-cozy-amber dark:text-cozy-amber-light">
+            My Sanctuary Folders
+          </span>
+          <h1 className="font-serif font-bold text-3xl sm:text-4xl text-cozy-night-300 dark:text-white leading-tight">
+            Saved Bookmarks
+          </h1>
+          <p className="text-xs sm:text-sm text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+            A beautiful, organized home for all your saved books and research paper studies.
+          </p>
+        </div>
+
+        {/* Tab & Search controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/20 dark:bg-cozy-night-200/35 p-3 rounded-3xl border border-white/20 dark:border-white/5 backdrop-blur-md shadow-glass-light dark:shadow-glass-dark">
+          
+          {/* Segment controller */}
+          <div className="flex bg-black/10 dark:bg-white/5 p-1 rounded-2xl md:w-80">
+            <button
+              onClick={() => {
+                setActiveSegment('books');
+                setSearchQuery('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-all ${
+                activeSegment === 'books'
+                  ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-sm'
+                  : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>Books Shelf ({books.length})</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveSegment('papers');
+                setSearchQuery('');
+              }}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-all ${
+                activeSegment === 'papers'
+                  ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-sm'
+                  : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Papers ({savedPapers.length})</span>
+            </button>
+          </div>
+
+          {/* Search query input */}
+          <div className="relative md:w-80">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+            <input
+              type="text"
+              placeholder={activeSegment === 'books' ? "Search books by title, author..." : "Search papers by topic, journal, author..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-xs glass-input"
+            />
+          </div>
+
+        </div>
+
+        {/* Loading Spinner */}
+        {isSegmentLoading ? (
+          <div className="py-20 text-center space-y-3">
+            <RefreshCw className="w-8 h-8 text-cozy-amber animate-spin mx-auto" />
+            <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">Synchronizing folders catalog...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            
+            {/* 1. Books Shelf Tab */}
+            {activeSegment === 'books' && (
+              <motion.div
+                key="books-grid"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="space-y-6"
+              >
+                {filteredBooks.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="py-16 text-center glass-panel border border-white/10 rounded-3xl p-8 space-y-5 max-w-lg mx-auto"
+                  >
+                    <div className="p-4 rounded-full bg-cozy-amber/10 text-cozy-amber w-16 h-16 flex items-center justify-center mx-auto">
+                      <BookOpen className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-serif font-bold text-xl">Book Shelf Empty</h3>
+                      <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40 max-w-sm mx-auto leading-relaxed">
+                        {searchQuery 
+                          ? `No saved books matched your search phrase "${searchQuery}". Try editing filters.`
+                          : "You don't have any books saved on your virtual shelves. Explore Open Library daily trending books!"}
+                      </p>
+                    </div>
+                    {!searchQuery && (
+                      <Link 
+                        to="/discover" 
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-cozy-amber to-cozy-amber-dark hover:brightness-110 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-cozy-amber/10"
+                      >
+                        <Compass className="w-4 h-4" /> Discover Trending Books
+                      </Link>
+                    )}
+                  </motion.div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredBooks.map((book) => {
+                      const pct = Math.round((book.progress / book.pages) * 100);
+                      return (
+                        <motion.div
+                          key={book.id}
+                          variants={cardVariants}
+                          whileHover={{ y: -5 }}
+                          className="glass-panel border-white/20 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-full group relative"
+                        >
+                          {/* Heart Icon for favorite */}
+                          {book.favorite && (
+                            <div className="absolute top-3 right-3 p-1.5 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 z-10">
+                              <Heart className="w-3.5 h-3.5 fill-current" />
+                            </div>
+                          )}
+
+                          {/* Cover Image Frame */}
+                          <Link to={`/book/${book.id}`} className="block relative aspect-w-4 aspect-h-5 bg-cozy-night-400/50 flex-shrink-0">
+                            {book.cover_url ? (
+                              <img 
+                                src={book.cover_url} 
+                                alt={book.title} 
+                                className="w-full h-56 object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className={`w-full h-56 bg-gradient-to-tr ${book.cover_color} text-white flex flex-col items-center justify-between p-4 text-center`}>
+                                <BookOpen className="w-6 h-6 opacity-60 mt-4" />
+                                <h4 className="font-serif font-bold text-xs leading-snug px-1 line-clamp-3">{book.title}</h4>
+                                <div className="mb-2" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="px-3.5 py-1.5 rounded-lg bg-white text-cozy-night-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1">
+                                View Profile <ArrowUpRight className="w-3 h-3" />
+                              </span>
+                            </div>
+                          </Link>
+
+                          {/* Details Metadata */}
+                          <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-cozy-amber/15 text-cozy-amber text-[8px] font-bold uppercase tracking-wider">
+                                  {book.status.replace('_', ' ')}
+                                </span>
+                              </div>
+                              <h3 className="font-serif font-bold text-sm text-cozy-night-300 dark:text-white line-clamp-1 group-hover:text-cozy-amber transition-colors">
+                                <Link to={`/book/${book.id}`}>{book.title}</Link>
+                              </h3>
+                              <p className="text-[11px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate">
+                                by {book.author}
+                              </p>
+                            </div>
+
+                            {/* Book Progress Metrics */}
+                            <div className="space-y-2 pt-2 border-t border-white/5">
+                              <div className="flex justify-between items-center text-[10px] font-bold">
+                                <span className="text-cozy-night-100/40 dark:text-cozy-cream-200/35">PROGRESS</span>
+                                <span className="text-cozy-night-300 dark:text-white">{pct}% ({book.progress}/{book.pages} p.)</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                                <motion.div 
+                                  className="h-full bg-gradient-to-r from-cozy-amber to-cozy-amber-dark"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ duration: 0.8 }}
+                                />
+                              </div>
+
+                              {/* Action bottom buttons */}
+                              <div className="flex items-center justify-between pt-2">
+                                <button 
+                                  onClick={(e) => handleToggleFavorite(book, e)}
+                                  className={`p-1.5 rounded-lg border transition-colors ${
+                                    book.favorite 
+                                      ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                                      : 'bg-transparent border-white/10 hover:text-red-500'
+                                  }`}
+                                >
+                                  <Heart className={`w-3.5 h-3.5 ${book.favorite ? 'fill-current' : ''}`} />
+                                </button>
+                                
+                                <button 
+                                  onClick={(e) => handleDeleteBook(book.id, book.title, e)}
+                                  className="p-1.5 rounded-lg border border-white/10 text-cozy-night-100/40 hover:text-red-500 hover:border-red-500/30 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* 2. Papers Shelf Tab */}
+            {activeSegment === 'papers' && (
+              <motion.div
+                key="papers-grid"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="space-y-6"
+              >
+                {filteredPapers.length === 0 ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="py-16 text-center glass-panel border border-white/10 rounded-3xl p-8 space-y-5 max-w-lg mx-auto"
+                  >
+                    <div className="p-4 rounded-full bg-cozy-amber/10 text-cozy-amber w-16 h-16 flex items-center justify-center mx-auto">
+                      <Bookmark className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="font-serif font-bold text-xl">Academic Folder Empty</h3>
+                      <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40 max-w-sm mx-auto leading-relaxed">
+                        {searchQuery 
+                          ? `No saved publications matched your search phrase "${searchQuery}". Try editing filters.`
+                          : "You don't have any research paper bookmarks configured. Discover groundbreaking computer science studies!"}
+                      </p>
+                    </div>
+                    {!searchQuery && (
+                      <Link 
+                        to="/discover" 
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-cozy-amber to-cozy-amber-dark hover:brightness-110 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-cozy-amber/10"
+                      >
+                        <Compass className="w-4 h-4" /> Discover Research Papers
+                      </Link>
+                    )}
+                  </motion.div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredPapers.map((paper) => (
+                      <motion.div
+                        key={paper.id}
+                        variants={cardVariants}
+                        whileHover={{ y: -3 }}
+                        className="glass-panel border-white/20 dark:border-white/5 rounded-3xl p-5 flex flex-col justify-between space-y-4 hover:shadow-md shadow-sm transition-all relative group"
+                      >
+                        
+                        <div className="space-y-3">
+                          {/* Badges row */}
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            {paper.fields && paper.fields.slice(0, 2).map((field, idx) => (
+                              <span key={idx} className="px-2 py-0.5 rounded bg-cozy-amber/10 text-cozy-amber text-[8px] font-bold uppercase tracking-wider">
+                                {field}
+                              </span>
+                            ))}
+                            <span className="px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/5 border border-white/5 text-[8px] text-cozy-night-100/40 dark:text-cozy-cream-200/35 font-bold flex items-center gap-1">
+                              <Quote className="w-2.5 h-2.5" />
+                              {paper.citationCount.toLocaleString()} quote stats
+                            </span>
+                          </div>
+
+                          {/* Paper Title & Authors */}
+                          <div className="space-y-1">
+                            <h3 className="font-serif font-bold text-sm text-cozy-night-300 dark:text-white leading-snug line-clamp-2 group-hover:text-cozy-amber transition-colors">
+                              <Link to={`/paper/${paper.id}`}>{paper.title}</Link>
+                            </h3>
+                            <p className="text-[11px] font-serif text-cozy-night-100/60 dark:text-cozy-cream-200/45 italic truncate">
+                              by {paper.authors.join(', ')}
+                            </p>
+                          </div>
+
+                          {/* Summary text */}
+                          <p className="text-xs text-cozy-night-100/75 dark:text-cozy-cream-200/65 line-clamp-3 leading-relaxed">
+                            {paper.abstract}
+                          </p>
+                        </div>
+
+                        {/* Card bottom actions row */}
+                        <div className="flex justify-between items-center pt-3 border-t border-white/5 text-xs">
+                          <span className="flex items-center gap-1 text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/30">
+                            <Calendar className="w-3.5 h-3.5 text-cozy-amber/70" />
+                            {paper.journal} ({paper.year})
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            <Link 
+                              to={`/paper/${paper.id}`} 
+                              className="px-3.5 py-1.5 bg-white/20 dark:bg-white/5 border border-white/10 hover:bg-white/35 text-[10px] font-bold uppercase tracking-wider rounded-xl transition-all flex items-center gap-1"
+                            >
+                              <span>Open details</span>
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Link>
+
+                            <button 
+                              onClick={(e) => handleUnbookmarkPaper(paper.id, paper.title, e)}
+                              className="p-1.5 bg-red-500/10 border border-red-500/25 hover:bg-red-500 hover:text-white text-red-500 rounded-xl transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        )}
+
+      </div>
+    </div>
+  );
+}
