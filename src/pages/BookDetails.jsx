@@ -470,16 +470,16 @@ export default function BookDetails() {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       console.log('[BookDetails] ID format:', isUUID ? 'UUID (library book)' : 'External (Gutenberg/GB)');
       
+      // Set a 25-second timeout ONLY for the book-finding phase (NOT description fetch)
+      timeoutId = setTimeout(() => {
+        if (active) {
+          console.error('[BookDetails] ⏱️ TIMEOUT after 25 seconds finding book');
+          setError('Book details took too long to load. Please try again.');
+          setLoading(false);
+        }
+      }, 25000);
+      
       try {
-        // Set a 30-second timeout to give fetchBooks() + retry time to complete
-        timeoutId = setTimeout(() => {
-          if (active) {
-            console.error('[BookDetails] ⏱️ TIMEOUT after 30 seconds - book fetch never completed');
-            setError('Book details took too long to load. Please try again.');
-            setLoading(false);
-          }
-        }, 30000);
-        
         // Step 1: Check cached books first (instant)
         const cachedBooks = useLibraryStore.getState().books;
         let targetBook = cachedBooks.find(b => 
@@ -514,11 +514,9 @@ export default function BookDetails() {
         // Step 3: If still not found
         if (!targetBook) {
           if (isUUID) {
-            // UUID not found in library - this book was deleted or belongs to different account
+            // UUID not found in library - deleted or belongs to different account
             console.error('[BookDetails] UUID not found in library:', id);
             setError('This book could not be found in your library. It may have been removed.');
-            setLoading(false);
-            if (timeoutId) clearTimeout(timeoutId);
             return;
           }
           
@@ -529,7 +527,6 @@ export default function BookDetails() {
             console.log('[BookDetails] ✅ API returned book:', targetBook?.title, targetBook?.id);
           } catch (err) {
             console.error('[BookDetails] ❌ API fetch failed:', err.message);
-            console.log('[BookDetails] Creating fallback book object for ID:', id);
             targetBook = {
               id: id,
               title: id.replace(/[-_]+/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
@@ -550,51 +547,66 @@ export default function BookDetails() {
           console.log('[BookDetails] Step 3: Book found in library, loading configurations...');
           setTrackMode(targetBook.tracking_mode || 'pages');
           setTotalChapters(targetBook.total_chapters || 20);
-          console.log('[BookDetails] Tracking mode:', targetBook.tracking_mode);
         }
 
-        if (active) {
-          if (targetBook) {
-            console.log('[BookDetails] Step 4: Setting book details...');
-            setBookDetails(targetBook);
-            console.log('[BookDetails] ✅ Book details set:', targetBook.title);
-            
-            // Fetch description separately using correct external API ID
-            const externalId = targetBook.googlebooks_id 
-              ? `gb-${targetBook.googlebooks_id}` 
-              : (targetBook.openlibrary_id || targetBook.id);
-            
-            // Skip description fetch for UUIDs (no external catalog entry)
-            if (!isUUID || targetBook.openlibrary_id || targetBook.googlebooks_id) {
-              console.log('[BookDetails] Step 5: Fetching description for external ID:', externalId);
-              try {
-                const desc = await booksApi.getBookDescription(externalId);
+        if (!active || !targetBook) {
+          if (!targetBook) setError('Could not locate book catalog details.');
+          return;
+        }
+
+        // ✅ STEP 4: Book found — show it IMMEDIATELY, clear loading state
+        console.log('[BookDetails] ✅ Book found, rendering:', targetBook.title);
+        setBookDetails(targetBook);
+        if (timeoutId) clearTimeout(timeoutId); // Stop timeout — book is found
+        setLoading(false);
+        console.log('[BookDetails] ===== BOOK LOAD COMPLETE =====');
+
+        // STEP 5: Fetch description in background — non-blocking, won't affect loading state
+        const externalId = targetBook.googlebooks_id 
+          ? `gb-${targetBook.googlebooks_id}` 
+          : (targetBook.openlibrary_id || targetBook.id);
+        
+        const needsDescription = !isUUID || targetBook.openlibrary_id || targetBook.googlebooks_id;
+        
+        if (needsDescription && active) {
+          console.log('[BookDetails] Fetching description in background for:', externalId);
+          
+          // Wrap description fetch in an 8-second timeout to prevent indefinite hang
+          const descTimeout = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Description fetch timed out')), 8000)
+          );
+          
+          Promise.race([booksApi.getBookDescription(externalId), descTimeout])
+            .then(desc => {
+              if (active) {
                 setDescription(desc || 'A classical masterpiece curated for your reading sanctuary.');
-                console.log('[BookDetails] ✅ Description loaded');
-              } catch (descErr) {
-                console.warn('[BookDetails] Description fetch failed, using default:', descErr.message);
+                console.log('[BookDetails] ✅ Description loaded in background');
+              }
+            })
+            .catch(descErr => {
+              console.warn('[BookDetails] Background description fetch failed:', descErr.message);
+              if (active) {
                 setDescription('A classical masterpiece curated for your reading sanctuary.');
               }
-            } else {
-              setDescription('A book from your personal reading library.');
-            }
-          } else {
-            console.error('[BookDetails] ❌ No targetBook available');
-            setError('Could not locate book catalog details.');
-          }
+            });
+        } else if (active) {
+          setDescription('A book from your personal reading library.');
         }
+
       } catch (err) {
         if (active) {
           console.error('[BookDetails] ❌ UNEXPECTED ERROR:', err.message, err.stack);
           setError(err.message || 'Failed to fetch detailed book catalog data.');
         }
       } finally {
+        // Only clear timeout + loading if we haven't already done so above
         if (timeoutId) clearTimeout(timeoutId);
-        if (active) {
+        if (active && loading) {
           setLoading(false);
-          console.log('[BookDetails] ===== BOOK LOAD COMPLETE =====');
+          console.log('[BookDetails] ===== BOOK LOAD COMPLETE (via finally) =====');
         }
       }
+
     }
 
     loadBookData();
