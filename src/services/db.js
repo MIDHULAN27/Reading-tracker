@@ -661,8 +661,8 @@ export const dbService = {
       return safeDbCall('updateBook', async () => {
         const libraryUpdates = {};
         if (updates.status !== undefined) {
-          libraryUpdates.status = updates.status;
-          if (updates.status === 'reading') {
+          libraryUpdates.status = updates.status === 'reading' ? 'currently_reading' : updates.status;
+          if (updates.status === 'reading' || updates.status === 'currently_reading') {
             libraryUpdates.started_at = new Date().toISOString();
           } else if (updates.status === 'completed') {
             libraryUpdates.completed_at = new Date().toISOString();

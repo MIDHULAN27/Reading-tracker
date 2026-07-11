@@ -227,6 +227,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
       setAddedShelf(status);
     } catch (err) {
       console.error(err);
+      alert('Failed to update shelf: ' + (err.message || err));
     }
   };
 
