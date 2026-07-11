@@ -74,7 +74,7 @@ export default function BookDetails() {
   const navigate = useNavigate();
   const { books, addBook, updateBook, deleteBook, fetchBooks } = useLibraryStore();
   const { logs, fetchLogs, addLog } = useProgressStore();
-  const { user } = useAuthStore();
+  const { user, initialized: authInitialized, loading: authLoading } = useAuthStore();
   const guard = useGuestGuard();
   const currentUserId = user?.id || 'guest-booklyn-reader';
 
@@ -449,12 +449,22 @@ export default function BookDetails() {
     let active = true;
     let timeoutId = null;
     
+    // Don't start loading until auth has been initialized.
+    // On page refresh, Supabase takes time to restore the session.
+    // If we call getBooks() before auth is ready, getUser() returns null
+    // and the library comes back empty, making UUID books unfindable.
+    if (!authInitialized) {
+      setLoading(true);
+      return;
+    }
+    
     async function loadBookData() {
       setLoading(true);
       setError('');
       
       console.log('[BookDetails] ===== BOOK LOAD START =====');
       console.log('[BookDetails] Route ID:', id);
+      console.log('[BookDetails] Auth initialized:', authInitialized, '| User:', user?.id || 'guest');
       
       // Helper: check if this is a UUID (Supabase library book ID)
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -595,7 +605,8 @@ export default function BookDetails() {
       active = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [id, fetchBooks, fetchReviews, fetchLogs]);
+  // authInitialized is critical: ensures we re-run once auth session is restored after page refresh
+  }, [id, authInitialized, fetchBooks, fetchReviews, fetchLogs]);
 
   // Sync timers
   useEffect(() => {
