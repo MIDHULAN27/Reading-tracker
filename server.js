@@ -400,36 +400,40 @@ app.get('/api/health', (req, res) => {
 app.get('/api/debug-gutenberg', async (req, res) => {
   const q = req.query.q || 'The Blue Castle';
   const url = `https://gutendex.com/books/?search=${encodeURIComponent(q)}`;
-  try {
-    const start = Date.now();
-    const fetchResp = await fetch(url, {
-      headers: {
-        'User-Agent': 'Booklyn-Reader/1.0 (book-discovery-app)'
-      }
-    });
-    const elapsed = Date.now() - start;
-    if (!fetchResp.ok) {
-      return res.json({
-        success: false,
-        status: fetchResp.status,
-        statusText: fetchResp.statusText,
-        elapsedMs: elapsed
+  const experiments = [];
+
+  const runExperiment = async (name, headers) => {
+    try {
+      const start = Date.now();
+      const response = await fetch(url, { headers });
+      const elapsed = Date.now() - start;
+      const data = response.ok ? await response.json() : null;
+      experiments.push({
+        name,
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        elapsedMs: elapsed,
+        count: data?.count || 0
+      });
+    } catch (err) {
+      experiments.push({
+        name,
+        ok: false,
+        error: err.message
       });
     }
-    const data = await fetchResp.json();
-    return res.json({
-      success: true,
-      elapsedMs: elapsed,
-      count: data.count,
-      firstResult: data.results?.[0] || null
-    });
-  } catch (err) {
-    return res.json({
-      success: false,
-      error: err.message,
-      stack: err.stack
-    });
-  }
+  };
+
+  await runExperiment('Default (Custom UA)', { 'User-Agent': 'Booklyn-Reader/1.0 (book-discovery-app)' });
+  await runExperiment('Chrome Browser UA', { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' });
+  await runExperiment('Curl UA', { 'User-Agent': 'curl/8.4.0' });
+  await runExperiment('No custom headers', {});
+
+  return res.json({
+    url,
+    experiments
+  });
 });
 
 // GET /api/epub?url=<encoded-url> - Server-side EPUB/PDF downloader and stream proxy to bypass CORS
