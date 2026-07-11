@@ -8,6 +8,43 @@ import { useGuestGuardStore } from './useGuestGuardStore';
 
 const DB_TIMEOUT_MS = 10000; // 10 seconds
 
+const deduplicateBooks = (booksList) => {
+  const seen = new Map();
+  for (const book of booksList) {
+    if (!book || !book.title) continue;
+    const key = `${book.title.toLowerCase().trim()}|||${(book.author || '').toLowerCase().trim()}`;
+    if (!seen.has(key)) {
+      seen.set(key, book);
+    } else {
+      const existing = seen.get(key);
+      let keepNew = false;
+      if (book.status === 'reading' && existing.status !== 'reading') {
+        keepNew = true;
+      } else if (existing.status === 'reading' && book.status !== 'reading') {
+        keepNew = false;
+      } else {
+        const existingProgress = existing.progress / (existing.pages || 1);
+        const bookProgress = book.progress / (book.pages || 1);
+        if (bookProgress > existingProgress) {
+          keepNew = true;
+        } else if (bookProgress < existingProgress) {
+          keepNew = false;
+        } else {
+          const existingTime = new Date(existing.last_read || existing.added_at || 0).getTime();
+          const bookTime = new Date(book.last_read || book.added_at || 0).getTime();
+          if (bookTime > existingTime) {
+            keepNew = true;
+          }
+        }
+      }
+      if (keepNew) {
+        seen.set(key, book);
+      }
+    }
+  }
+  return Array.from(seen.values());
+};
+
 const withTimeout = (promise, ms = DB_TIMEOUT_MS, label = 'Database operation') => {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
@@ -59,8 +96,9 @@ export const useLibraryStore = create((set, get) => ({
         }
       }
 
-      set({ books: freeBooks, error: null, retryCount: 0 });
-      console.info('[Booklyn Library Store] Successfully fetched books:', freeBooks.length);
+      const uniqueBooks = deduplicateBooks(freeBooks);
+      set({ books: uniqueBooks, error: null, retryCount: 0 });
+      console.info('[Booklyn Library Store] Successfully fetched books:', uniqueBooks.length);
     } catch (error) {
       console.error('[Booklyn Library Store] Failed to fetch books:', error.message);
       
@@ -264,29 +302,49 @@ export const useLibraryStore = create((set, get) => ({
    */
   deleteBook: async (bookId) => {
     const previousBooks = get().books;
+    const deletedBook = previousBooks.find(b => b.id === bookId);
+    if (!deletedBook) return;
 
-    // Optimistically filter book from state
+    // Optimistically filter book and its duplicates from state
     set(state => ({
-      books: state.books.filter(b => b.id !== bookId),
+      books: state.books.filter(b => 
+        !(b.title.toLowerCase().trim() === deletedBook.title.toLowerCase().trim() &&
+          (b.author || '').toLowerCase().trim() === (deletedBook.author || '').toLowerCase().trim())
+      ),
       error: null
     }));
 
     try {
-      // Cascade delete PDF from IndexedDB if it exists
-      await pdfStore.deletePDF(bookId).catch(() => {});
-
-      if (syncManager.isOnline()) {
-        await withTimeout(
-          dbService.books.deleteBook(bookId),
-          DB_TIMEOUT_MS,
-          'Delete book'
+      // Find all duplicate entries matching the title and author in Supabase
+      let duplicates = [];
+      try {
+        const allBooks = await dbService.books.getBooks();
+        duplicates = allBooks.filter(b => 
+          b.title.toLowerCase().trim() === deletedBook.title.toLowerCase().trim() &&
+          (b.author || '').toLowerCase().trim() === (deletedBook.author || '').toLowerCase().trim()
         );
-        return true;
-      } else {
-        // Offline queue delete mutation
-        syncManager.queueMutation('books', 'delete', { id: bookId });
-        return true;
+      } catch (err) {
+        console.warn('[Booklyn Library Store] Failed to fetch duplicates for cascading delete:', err);
+        // Fallback to just the current bookId
+        duplicates = [{ id: bookId }];
       }
+
+      for (const dup of duplicates) {
+        // Cascade delete PDF from IndexedDB if it exists
+        await pdfStore.deletePDF(dup.id).catch(() => {});
+
+        if (syncManager.isOnline()) {
+          await withTimeout(
+            dbService.books.deleteBook(dup.id),
+            DB_TIMEOUT_MS,
+            'Delete book'
+          );
+        } else {
+          // Offline queue delete mutation
+          syncManager.queueMutation('books', 'delete', { id: dup.id });
+        }
+      }
+      return true;
     } catch (error) {
       const friendlyMsg = getTableMissingMessage(error.message) || error.message;
       // Rollback on server failure

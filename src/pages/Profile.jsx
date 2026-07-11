@@ -8,14 +8,12 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { useProgressStore } from '../store/useProgressStore';
-import { usePaperStore } from '../store/usePaperStore';
 import { syncManager } from '../services/syncManager';
 
 export default function Profile() {
   const { user, logout } = useAuthStore();
   const { books, fetchBooks } = useLibraryStore();
   const { logs, fetchLogs, getStreak, getTodayReadingMinutes, dailyGoalMinutes } = useProgressStore();
-  const { savedPapers, fetchSavedPapers } = usePaperStore();
 
   const [syncState, setSyncState] = useState({
     online: true,
@@ -29,14 +27,13 @@ export default function Profile() {
   useEffect(() => {
     fetchBooks();
     fetchLogs();
-    fetchSavedPapers();
 
     // Subscribe to syncManager states
     const unsubscribe = syncManager.subscribe((status) => {
       setSyncState(status);
     });
     return unsubscribe;
-  }, [fetchBooks, fetchLogs, fetchSavedPapers]);
+  }, [fetchBooks, fetchLogs]);
 
   // Statistics computations
   const totalMinutes = logs.reduce((sum, log) => sum + (log.duration_minutes || 0), 0);
@@ -81,15 +78,6 @@ export default function Profile() {
         const hour = new Date(l.created_at).getHours();
         return hour >= 21 || hour < 4;
       }) ? 'Unlocked' : '0/1 reads'
-    },
-    {
-      id: 'academic_scholar',
-      title: 'Academic Scholar',
-      description: 'Saved at least 3 high-impact academic research papers in your booklyn database.',
-      icon: Bookmark,
-      color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
-      unlocked: savedPapers.length >= 3,
-      metric: `${savedPapers.length}/3 papers`
     },
     {
       id: 'booklyn_connoisseur',
@@ -156,7 +144,7 @@ export default function Profile() {
         </div>
 
         {/* Aggregate Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           
           <div className="glass-panel border-white/20 dark:border-white/5 rounded-3xl p-5 space-y-2 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-16 h-16 bg-booklyn-amber/5 rounded-full blur-lg" />
@@ -182,15 +170,6 @@ export default function Profile() {
             <div className="space-y-0.5">
               <span className="text-[10px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 uppercase tracking-widest block">Pages Completed</span>
               <span className="font-sans font-bold text-2xl text-booklyn-night-300 dark:text-white">{totalPages} pages</span>
-            </div>
-          </div>
-
-          <div className="glass-panel border-white/20 dark:border-white/5 rounded-3xl p-5 space-y-2 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/5 rounded-full blur-lg" />
-            <Bookmark className="w-6 h-6 text-rose-500" />
-            <div className="space-y-0.5">
-              <span className="text-[10px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 uppercase tracking-widest block">Papers Saved</span>
-              <span className="font-sans font-bold text-2xl text-booklyn-night-300 dark:text-white">{savedPapers.length} papers</span>
             </div>
           </div>
 

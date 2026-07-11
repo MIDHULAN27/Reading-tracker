@@ -21,7 +21,6 @@ const Discover = lazy(() => import('./pages/Discover'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Settings = lazy(() => import('./pages/Settings'));
 const BookDetails = lazy(() => import('./pages/BookDetails'));
-const PaperDetails = lazy(() => import('./pages/PaperDetails'));
 const Saved = lazy(() => import('./pages/Saved'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Goals = lazy(() => import('./pages/Goals'));
@@ -65,7 +64,6 @@ function AppContent() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/book/:id" element={<BookDetails />} />
-          <Route path="/paper/:id" element={<PaperDetails />} />
 
           {/* === AUTH-REQUIRED pages (still inside DashboardLayout but redirect guests) === */}
           <Route

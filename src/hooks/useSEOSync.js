@@ -16,9 +16,6 @@ export default function useSEOSync() {
     if (path.startsWith('/book/')) {
       title = 'Book Details | Booklyn';
       description = 'Read reviews, log progress, and configure custom page limits for your book choices.';
-    } else if (path.startsWith('/paper/')) {
-      title = 'Research Paper | Booklyn';
-      description = 'Examine citations, study parameters, and navigate open-access document resources on Booklyn.';
     } else {
       switch (path) {
         case '/':
@@ -35,7 +32,7 @@ export default function useSEOSync() {
           break;
         case '/saved-shelf':
           title = 'Saved Shelf & Bookmarks | Booklyn';
-          description = 'View and manage your bookmarked research papers, academic studies, and saved bookshelf collection.';
+          description = 'View and manage your saved bookshelf collection.';
           break;
         case '/reading-profile':
           title = 'Reading Profile & Achievements | Booklyn';
