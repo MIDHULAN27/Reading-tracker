@@ -1,7 +1,7 @@
 // Promise-wrapped IndexedDB manager to store PDF blobs locally and bypass localStorage limits.
 class PDFStore {
   constructor() {
-    this.dbName = 'cozy_reads_pdfs';
+    this.dbName = 'booklyn_reads_pdfs';
     this.storeName = 'pdfs';
     this.version = 1;
     this.db = null;

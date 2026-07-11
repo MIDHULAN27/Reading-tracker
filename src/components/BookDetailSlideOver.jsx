@@ -53,7 +53,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
   const [editText, setEditText] = useState('');
   const [editRating, setEditRating] = useState(0);
 
-  const currentUserId = user?.id || 'guest-cozy-reader';
+  const currentUserId = user?.id || 'guest-booklyn-reader';
 
   // Fetch reviews when the drawer opens or book changes
   useEffect(() => {
@@ -197,6 +197,11 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
   const handleAddToShelf = async (status) => {
     if (!book) return;
+    const isFreeBook = book && !(book.googlebooks_id && !book.openlibrary_id && !book.has_pdf);
+    if (!isFreeBook) {
+      alert('Only free edition books (from Project Gutenberg or local uploads) can be added to your library.');
+      return;
+    }
     try {
       const bookData = {
         ...book,
@@ -240,7 +245,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
             className="fixed right-0 top-0 bottom-0 w-full max-w-lg glass-overlay border-l border-white/15 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.45)] z-[200] flex flex-col h-full overflow-hidden pointer-events-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-cozy-cream-300/40 dark:border-cozy-night-100/20">
+            <div className="flex items-center justify-between p-6 border-b border-booklyn-cream-300/40 dark:border-booklyn-night-100/20">
               <h2 className="font-serif text-2xl font-bold tracking-tight">Book details</h2>
               <button
                 onClick={onClose}
@@ -277,7 +282,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                     <h3 className="font-serif text-2xl font-bold tracking-tight leading-tight">
                       {book.title}
                     </h3>
-                    <p className="text-cozy-amber dark:text-cozy-amber-light font-medium text-base">
+                    <p className="text-booklyn-amber dark:text-booklyn-amber-light font-medium text-base">
                       by {book.author}
                     </p>
                   </div>
@@ -286,22 +291,22 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                     <Link
                       to={`/book/${book.id}`}
                       onClick={onClose}
-                      className="px-4 py-1.5 rounded-xl bg-cozy-amber/15 hover:bg-cozy-amber/25 border border-cozy-amber/30 hover:border-cozy-amber text-cozy-amber text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-lg shadow-cozy-amber/5"
+                      className="px-4 py-1.5 rounded-xl bg-booklyn-amber/15 hover:bg-booklyn-amber/25 border border-booklyn-amber/30 hover:border-booklyn-amber text-booklyn-amber text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 shadow-lg shadow-booklyn-amber/5"
                     >
                       <Book className="w-3.5 h-3.5" />
                       <span>Open Reading Sanctuary</span>
                     </Link>
                     
-                    <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-cozy-cream-200 dark:bg-cozy-night-100 rounded-lg text-cozy-night-100/60 dark:text-cozy-cream-200/50 flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-booklyn-cream-200 dark:bg-booklyn-night-100 rounded-lg text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 flex items-center gap-1.5">
                       <Book className="w-3.5 h-3.5" />
                       {book.genre || 'General'}
                     </span>
-                    <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-cozy-cream-200 dark:bg-cozy-night-100 rounded-lg text-cozy-night-100/60 dark:text-cozy-cream-200/50 flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-booklyn-cream-200 dark:bg-booklyn-night-100 rounded-lg text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5" />
                       {book.pages} pages
                     </span>
                     {book.publish_year && (
-                      <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-cozy-cream-200 dark:bg-cozy-night-100 rounded-lg text-cozy-night-100/60 dark:text-cozy-cream-200/50 flex items-center gap-1.5">
+                      <span className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider bg-booklyn-cream-200 dark:bg-booklyn-night-100 rounded-lg text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5" />
                         {book.publish_year}
                       </span>
@@ -320,14 +325,14 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                             cx="32"
                             cy="32"
                             r="24"
-                            className="stroke-cozy-cream-300/40 dark:stroke-cozy-night-100/20 fill-transparent"
+                            className="stroke-booklyn-cream-300/40 dark:stroke-booklyn-night-100/20 fill-transparent"
                             strokeWidth="4"
                           />
                           <motion.circle
                             cx="32"
                             cy="32"
                             r="24"
-                            className="stroke-cozy-amber dark:stroke-cozy-amber-light fill-transparent"
+                            className="stroke-booklyn-amber dark:stroke-booklyn-amber-light fill-transparent"
                             strokeWidth="4"
                             strokeDasharray={151}
                             initial={{ strokeDashoffset: 151 }}
@@ -336,20 +341,20 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                             strokeLinecap="round"
                           />
                         </svg>
-                        <span className="absolute text-[11px] font-sans font-bold text-cozy-amber">
+                        <span className="absolute text-[11px] font-sans font-bold text-booklyn-amber">
                           {progressPct}%
                         </span>
                       </div>
                       <div className="text-left font-sans space-y-0.5">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40 leading-none">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 leading-none">
                           Reading Progress
                         </p>
-                        <p className="text-xs font-bold text-cozy-night-300 dark:text-white">
+                        <p className="text-xs font-bold text-booklyn-night-300 dark:text-white">
                           {trackMode === 'pages' && `${existingBook.progress} of ${existingBook.pages} pages`}
                           {trackMode === 'percentage' && `${progressPct}% complete`}
                           {trackMode === 'chapters' && `Chapter ${existingBook.current_chapter || 0} of ${totalChapters}`}
                         </p>
-                        <p className="text-[9px] font-semibold text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+                        <p className="text-[9px] font-semibold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                           {existingBook.status === 'completed' ? '🎉 Finished' : '📖 Active'}
                         </p>
                       </div>
@@ -360,7 +365,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
               {/* Action Shelving Bar */}
               <div className="glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 space-y-3 shadow-sm bg-white/5">
-                <p className="text-xs font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 text-center sm:text-left">
+                <p className="text-xs font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 text-center sm:text-left">
                   {existingBook ? 'Shelf Alignment' : 'Add to My Shelves'}
                 </p>
                 
@@ -377,8 +382,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                         onClick={() => handleAddToShelf(shelf.key)}
                         className={`py-2 px-1 text-center rounded-xl text-xs font-semibold tracking-wide border transition-all duration-300 flex flex-col sm:flex-row items-center justify-center gap-1.5 active:scale-95 ${
                           isSelected
-                            ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark border-cozy-amber text-white shadow-md shadow-cozy-amber/20 font-bold'
-                            : 'bg-white/20 dark:bg-white/5 border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-cozy-night-100/70 dark:text-cozy-cream-100'
+                            ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark border-booklyn-amber text-white shadow-md shadow-booklyn-amber/20 font-bold'
+                            : 'bg-white/20 dark:bg-white/5 border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-booklyn-night-100/70 dark:text-booklyn-cream-100'
                         }`}
                       >
                         {isSelected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
@@ -393,10 +398,10 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
               {existingBook && (
                 <div className="glass-panel rounded-2xl p-4.5 border border-white/20 dark:border-white/10 space-y-3 bg-white/10 dark:bg-white/5 shadow-sm">
                   <div>
-                    <h4 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white leading-none">
+                    <h4 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white leading-none">
                       Progress Configuration
                     </h4>
-                    <p className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold uppercase tracking-wider mt-1">
+                    <p className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold uppercase tracking-wider mt-1">
                       Choose how you prefer to track this volume
                     </p>
                   </div>
@@ -415,8 +420,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                           onClick={() => setTrackMode(tab.id)}
                           className={`py-1.5 rounded-lg text-[9px] font-bold tracking-wider uppercase transition-all ${
                             active
-                              ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white'
-                              : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+                              ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white'
+                              : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-300 dark:hover:text-white'
                           }`}
                         >
                           {tab.label}
@@ -432,7 +437,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                       exit={{ opacity: 0, height: 0 }}
                       className="flex items-center justify-between pt-2 overflow-hidden text-xs"
                     >
-                      <span className="text-cozy-night-100/60 dark:text-cozy-cream-200/50 font-semibold">
+                      <span className="text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 font-semibold">
                         Total Chapters in Book:
                       </span>
                       <input
@@ -449,18 +454,18 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
               {/* Synopsis/Description Segment */}
               <div className="space-y-2">
-                <h4 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">
+                <h4 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">
                   Book Synopsis
                 </h4>
                 {loadingDesc ? (
                   <div className="space-y-2.5 py-2 animate-pulse">
-                    <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-full" />
-                    <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-5/6" />
-                    <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-11/12" />
-                    <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-2/3" />
+                    <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-full" />
+                    <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-5/6" />
+                    <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-11/12" />
+                    <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-2/3" />
                   </div>
                 ) : (
-                  <p className="text-sm text-cozy-night-100/70 dark:text-cozy-cream-200/60 leading-relaxed font-sans text-justify">
+                  <p className="text-sm text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 leading-relaxed font-sans text-justify">
                     {description || 'No summary is currently available for this edition.'}
                   </p>
                 )}
@@ -469,11 +474,11 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
               {/* Custom Reviews & Ratings card with Auto-Saving */}
               {existingBook && (
                 <div className="glass-panel rounded-2xl p-4.5 border border-white/20 dark:border-white/10 space-y-4 shadow-md bg-white/10 dark:bg-white/5 relative overflow-hidden">
-                  <div className="absolute -top-10 -right-10 w-20 h-20 bg-cozy-amber/5 rounded-full blur-xl pointer-events-none" />
+                  <div className="absolute -top-10 -right-10 w-20 h-20 bg-booklyn-amber/5 rounded-full blur-xl pointer-events-none" />
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-serif text-sm md:text-base font-bold text-cozy-night-300 dark:text-white leading-snug">
+                      <h4 className="font-serif text-sm md:text-base font-bold text-booklyn-night-300 dark:text-white leading-snug">
                         Your Review & Rating
                       </h4>
                       
@@ -519,29 +524,29 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
               {/* Extended Details Table */}
               <div className="glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 text-xs space-y-2">
-                <div className="flex justify-between py-1 border-b border-cozy-cream-300/20 dark:border-cozy-night-100/10">
-                  <span className="text-cozy-night-100/50 dark:text-cozy-cream-200/40">Publisher</span>
+                <div className="flex justify-between py-1 border-b border-booklyn-cream-300/20 dark:border-booklyn-night-100/10">
+                  <span className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Publisher</span>
                   <span className="font-medium text-right max-w-[240px] truncate">{book.publisher || 'Unknown'}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-cozy-cream-300/20 dark:border-cozy-night-100/10">
-                  <span className="text-cozy-night-100/50 dark:text-cozy-cream-200/40">Language</span>
+                <div className="flex justify-between py-1 border-b border-booklyn-cream-300/20 dark:border-booklyn-night-100/10">
+                  <span className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Language</span>
                   <span className="font-medium">{book.language || 'English'}</span>
                 </div>
                 {book.ratings_average && (
-                  <div className="flex justify-between py-1 border-b border-cozy-cream-300/20 dark:border-cozy-night-100/10">
-                    <span className="text-cozy-night-100/50 dark:text-cozy-cream-200/40">Average Rating</span>
+                  <div className="flex justify-between py-1 border-b border-booklyn-cream-300/20 dark:border-booklyn-night-100/10">
+                    <span className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Average Rating</span>
                     <span className="font-medium flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 fill-cozy-amber text-cozy-amber" />
+                      <Star className="w-3.5 h-3.5 fill-booklyn-amber text-booklyn-amber" />
                       {book.ratings_average} / 5
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between py-1">
-                  <span className="text-cozy-night-100/50 dark:text-cozy-cream-200/40">Gutenberg Catalog</span>
+                  <span className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Gutenberg Catalog</span>
                   {String(book.id).startsWith('pdf-') ? (
                     <span className="font-semibold text-emerald-500">Local Archive</span>
                   ) : (
-                    <span className="font-semibold text-cozy-amber dark:text-cozy-amber-light">
+                    <span className="font-semibold text-booklyn-amber dark:text-booklyn-amber-light">
                       In-App Sanctuary Only
                     </span>
                   )}
@@ -549,16 +554,16 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
               </div>
 
               {/* Divider */}
-              <hr className="border-cozy-cream-300/30 dark:border-cozy-night-100/10 my-6" />
+              <hr className="border-booklyn-cream-300/30 dark:border-booklyn-night-100/10 my-6" />
 
               {/* Community Reviews Section */}
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-cozy-amber" />
+                  <h4 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-booklyn-amber" />
                     <span>Community Reviews</span>
                   </h4>
-                  <span className="px-2.5 py-1 text-xs font-bold bg-cozy-cream-200 dark:bg-cozy-night-100 rounded-full text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+                  <span className="px-2.5 py-1 text-xs font-bold bg-booklyn-cream-200 dark:bg-booklyn-night-100 rounded-full text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
                     {totalCount} reviews
                   </span>
                 </div>
@@ -567,8 +572,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                 {totalCount > 0 ? (
                   <div className="glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 grid grid-cols-1 sm:grid-cols-12 gap-4 bg-white/5">
                     {/* Left: Overall stats */}
-                    <div className="sm:col-span-4 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-cozy-cream-300/20 dark:border-cozy-night-100/10 pb-4 sm:pb-0 sm:pr-4">
-                      <span className="text-4xl font-serif font-black text-cozy-night-300 dark:text-white animate-pulse-slow">
+                    <div className="sm:col-span-4 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-booklyn-cream-300/20 dark:border-booklyn-night-100/10 pb-4 sm:pb-0 sm:pr-4">
+                      <span className="text-4xl font-serif font-black text-booklyn-night-300 dark:text-white animate-pulse-slow">
                         {(() => {
                           const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
                           return isNaN(avg) ? '0.0' : avg.toFixed(1);
@@ -583,14 +588,14 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                               key={i} 
                               className={`w-3.5 h-3.5 ${
                                 i < Math.round(avg || 0)
-                                  ? 'fill-cozy-amber text-cozy-amber'
-                                  : 'text-cozy-night-100/20 dark:text-cozy-cream-200/10'
+                                  ? 'fill-booklyn-amber text-booklyn-amber'
+                                  : 'text-booklyn-night-100/20 dark:text-booklyn-cream-200/10'
                               }`} 
                             />
                           );
                         })}
                       </div>
-                      <span className="text-[10px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/40 uppercase tracking-widest text-center mt-1">
+                      <span className="text-[10px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 uppercase tracking-widest text-center mt-1">
                         Average Rating
                       </span>
                     </div>
@@ -601,14 +606,14 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                         const count = reviews.filter(r => r.rating === stars).length;
                         const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                         return (
-                          <div key={stars} className="flex items-center gap-2 text-[10px] font-semibold text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+                          <div key={stars} className="flex items-center gap-2 text-[10px] font-semibold text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
                             <span className="w-3 text-right">{stars}★</span>
-                            <div className="flex-1 h-2 bg-cozy-cream-300/40 dark:bg-cozy-night-100/30 rounded-full overflow-hidden">
+                            <div className="flex-1 h-2 bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/30 rounded-full overflow-hidden">
                               <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${pct}%` }}
                                 transition={{ duration: 0.5 }}
-                                className="h-full bg-gradient-to-r from-cozy-amber to-cozy-amber-dark rounded-full"
+                                className="h-full bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark rounded-full"
                               />
                             </div>
                             <span className="w-5 text-left">{Math.round(pct)}%</span>
@@ -619,7 +624,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                   </div>
                 ) : (
                   <div className="text-center py-6 glass-panel rounded-2xl border border-white/20 dark:border-white/10 bg-white/5">
-                    <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+                    <p className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                       No community reviews yet. Be the first to share your thoughts!
                     </p>
                   </div>
@@ -679,7 +684,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                     return (
                       <div className="glass-panel rounded-2xl p-4.5 border border-white/20 dark:border-white/10 space-y-4 bg-white/10 dark:bg-white/5 relative">
                         <div className="flex items-center justify-between">
-                          <h5 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white">
+                          <h5 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white">
                             Write a Community Review
                           </h5>
                           <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center gap-1">
@@ -697,7 +702,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">Your Rating:</span>
+                            <span className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Your Rating:</span>
                             <RatingPicker rating={newReviewRating} onChange={setNewReviewRating} size={5} />
                           </div>
 
@@ -712,9 +717,9 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                               }}
                               className="w-full p-3 glass-input text-xs resize-none rounded-xl font-medium"
                             />
-                            <div className="flex justify-between items-center text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold px-1 mt-1">
+                            <div className="flex justify-between items-center text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold px-1 mt-1">
                               <span>Min. 10 characters</span>
-                              <span className={newReviewText.length >= 10 ? 'text-emerald-500' : 'text-cozy-night-100/40'}>
+                              <span className={newReviewText.length >= 10 ? 'text-emerald-500' : 'text-booklyn-night-100/40'}>
                                 {newReviewText.length} characters
                               </span>
                             </div>
@@ -726,8 +731,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                             onClick={handleReviewSubmit}
                             className={`w-full py-2 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 ${
                               newReviewRating === 0 || newReviewText.length < 10
-                                ? 'bg-cozy-cream-300/40 dark:bg-cozy-night-100/20 text-cozy-night-100/30 dark:text-cozy-cream-200/20 border border-white/5 cursor-not-allowed shadow-none'
-                                : 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white hover:brightness-105 active:scale-[0.98]'
+                                ? 'bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/20 text-booklyn-night-100/30 dark:text-booklyn-cream-200/20 border border-white/5 cursor-not-allowed shadow-none'
+                                : 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white hover:brightness-105 active:scale-[0.98]'
                             }`}
                           >
                             {submittingReview ? (
@@ -747,8 +752,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
 
                 {/* Filter and Sort Tabs for Community Feed */}
                 {totalCount > 0 && (
-                  <div className="flex items-center justify-between border-b border-cozy-cream-300/20 dark:border-cozy-night-100/10 pb-2">
-                    <span className="text-xs font-serif font-bold text-cozy-night-300 dark:text-white">Reviews Feed</span>
+                  <div className="flex items-center justify-between border-b border-booklyn-cream-300/20 dark:border-booklyn-night-100/10 pb-2">
+                    <span className="text-xs font-serif font-bold text-booklyn-night-300 dark:text-white">Reviews Feed</span>
                     <div className="flex gap-1.5">
                       {[
                         { id: 'helpful', label: 'Most Helpful' },
@@ -759,8 +764,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                           onClick={() => handleSortChange(tab.id)}
                           className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
                             sortBy === tab.id
-                              ? 'bg-cozy-cream-200 dark:bg-cozy-night-100 border-cozy-cream-300 dark:border-cozy-night-200 text-cozy-night-300 dark:text-white'
-                              : 'border-transparent text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+                              ? 'bg-booklyn-cream-200 dark:bg-booklyn-night-100 border-booklyn-cream-300 dark:border-booklyn-night-200 text-booklyn-night-300 dark:text-white'
+                              : 'border-transparent text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-300 dark:hover:text-white'
                           }`}
                         >
                           {tab.label}
@@ -777,14 +782,14 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                     Array.from({ length: 2 }).map((_, i) => (
                       <div key={i} className="glass-panel rounded-2xl p-4 border border-white/10 animate-pulse space-y-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-cozy-cream-300 dark:bg-cozy-night-100" />
+                          <div className="w-8 h-8 rounded-full bg-booklyn-cream-300 dark:bg-booklyn-night-100" />
                           <div className="flex-1 space-y-1.5">
-                            <div className="h-3 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-1/3" />
-                            <div className="h-2 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-1/4" />
+                            <div className="h-3 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-1/3" />
+                            <div className="h-2 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-1/4" />
                           </div>
                         </div>
-                        <div className="h-2.5 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-full" />
-                        <div className="h-2.5 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-5/6" />
+                        <div className="h-2.5 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-full" />
+                        <div className="h-2.5 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-5/6" />
                       </div>
                     ))
                   ) : (
@@ -803,7 +808,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.3 }}
                             className={`glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 space-y-3 bg-white/5 relative overflow-hidden transition-all ${
-                              isMe ? 'ring-1 ring-cozy-amber/30 bg-cozy-amber/[0.02]' : ''
+                              isMe ? 'ring-1 ring-booklyn-amber/30 bg-booklyn-amber/[0.02]' : ''
                             }`}
                           >
                             {/* Card Header: Avatar & Name */}
@@ -814,16 +819,16 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold text-cozy-night-300 dark:text-white">
+                                    <span className="text-xs font-bold text-booklyn-night-300 dark:text-white">
                                       {rev.user_name}
                                     </span>
                                     {isMe && (
-                                      <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide bg-cozy-amber/20 text-cozy-amber border border-cozy-amber/30 rounded">
+                                      <span className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide bg-booklyn-amber/20 text-booklyn-amber border border-booklyn-amber/30 rounded">
                                         You
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-1.5 text-[9px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold">
+                                  <div className="flex items-center gap-1.5 text-[9px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold">
                                     <span>{new Date(rev.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                     {rev.verified && (
                                       <>
@@ -846,8 +851,8 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                                       key={i} 
                                       className={`w-3 h-3 ${
                                         i < rev.rating
-                                          ? 'fill-cozy-amber text-cozy-amber'
-                                          : 'text-cozy-night-100/20 dark:text-cozy-cream-200/10'
+                                          ? 'fill-booklyn-amber text-booklyn-amber'
+                                          : 'text-booklyn-night-100/20 dark:text-booklyn-cream-200/10'
                                       }`} 
                                     />
                                   ))}
@@ -859,7 +864,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                             {isEditing ? (
                               <div className="space-y-3 pt-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">Rating:</span>
+                                  <span className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">Rating:</span>
                                   <RatingPicker rating={editRating} onChange={setEditRating} size={4.5} />
                                 </div>
                                 <textarea
@@ -871,14 +876,14 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                                 <div className="flex justify-end gap-2 text-[10px]">
                                   <button
                                     onClick={() => setEditingReviewId(null)}
-                                    className="px-2.5 py-1.5 rounded-lg border border-white/10 text-cozy-night-100 hover:bg-white/10 dark:text-cozy-cream-200"
+                                    className="px-2.5 py-1.5 rounded-lg border border-white/10 text-booklyn-night-100 hover:bg-white/10 dark:text-booklyn-cream-200"
                                   >
                                     Cancel
                                   </button>
                                   <button
                                     disabled={editRating === 0 || editText.length < 10}
                                     onClick={() => handleReviewEditSave(rev.id)}
-                                    className="px-3 py-1.5 rounded-lg bg-cozy-amber text-white font-bold disabled:opacity-50"
+                                    className="px-3 py-1.5 rounded-lg bg-booklyn-amber text-white font-bold disabled:opacity-50"
                                   >
                                     Save
                                   </button>
@@ -886,24 +891,24 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                               </div>
                             ) : (
                               /* Read Only review text */
-                              <p className="text-xs text-cozy-night-100/70 dark:text-cozy-cream-200/70 leading-relaxed font-sans text-justify pl-1">
+                              <p className="text-xs text-booklyn-night-100/70 dark:text-booklyn-cream-200/70 leading-relaxed font-sans text-justify pl-1">
                                 {rev.review_text}
                               </p>
                             )}
 
                             {/* Action Row: Helpful React button + Edit/Delete */}
                             {!isEditing && (
-                              <div className="flex items-center justify-between border-t border-cozy-cream-300/10 dark:border-cozy-night-100/10 pt-2.5 text-[10px] font-bold text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+                              <div className="flex items-center justify-between border-t border-booklyn-cream-300/10 dark:border-booklyn-night-100/10 pt-2.5 text-[10px] font-bold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                                 <motion.button
                                   whileTap={{ scale: 0.9 }}
                                   onClick={() => handleHelpfulToggle(rev.id)}
                                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
                                     hasLiked
-                                      ? 'bg-cozy-amber/15 border-cozy-amber/35 text-cozy-amber'
-                                      : 'border-white/10 hover:bg-white/10 text-cozy-night-100/50 dark:text-cozy-cream-200/40'
+                                      ? 'bg-booklyn-amber/15 border-booklyn-amber/35 text-booklyn-amber'
+                                      : 'border-white/10 hover:bg-white/10 text-booklyn-night-100/50 dark:text-booklyn-cream-200/40'
                                   }`}
                                 >
-                                  <ThumbsUp className={`w-3.5 h-3.5 ${hasLiked ? 'fill-cozy-amber' : ''}`} />
+                                  <ThumbsUp className={`w-3.5 h-3.5 ${hasLiked ? 'fill-booklyn-amber' : ''}`} />
                                   <span>Helpful ({rev.helpful_users?.length || 0})</span>
                                 </motion.button>
 
@@ -911,7 +916,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                                   <div className="flex items-center gap-3">
                                     <button
                                       onClick={() => handleStartEdit(rev)}
-                                      className="flex items-center gap-1 hover:text-cozy-amber transition-colors"
+                                      className="flex items-center gap-1 hover:text-booklyn-amber transition-colors"
                                     >
                                       <Edit2 className="w-3 h-3" />
                                       <span>Edit</span>
@@ -939,7 +944,7 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
                       type="button"
                       disabled={reviewsLoading}
                       onClick={handleLoadMore}
-                      className="w-full py-2 rounded-xl text-xs font-bold border border-white/20 dark:border-white/10 hover:bg-white/10 active:scale-95 transition-all text-cozy-night-100 dark:text-cozy-cream-200 flex items-center justify-center gap-1.5"
+                      className="w-full py-2 rounded-xl text-xs font-bold border border-white/20 dark:border-white/10 hover:bg-white/10 active:scale-95 transition-all text-booklyn-night-100 dark:text-booklyn-cream-200 flex items-center justify-center gap-1.5"
                     >
                       {reviewsLoading ? (
                         <>

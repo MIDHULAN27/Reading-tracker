@@ -9,14 +9,14 @@
   }
 
   body {
-    @apply font-sans bg-cozy-cream-50 text-cozy-night-100 transition-colors duration-500 ease-in-out antialiased overflow-x-hidden;
+    @apply font-sans bg-booklyn-cream-50 text-booklyn-night-100 transition-colors duration-500 ease-in-out antialiased overflow-x-hidden;
   }
   
   body.dark {
-    @apply bg-cozy-night-300 text-cozy-cream-50;
+    @apply bg-booklyn-night-300 text-booklyn-cream-50;
   }
 
-  /* WCAG-compliant keyboard navigation outlines using the cozy amber accent */
+  /* WCAG-compliant keyboard navigation outlines using the booklyn amber accent */
   :focus-visible {
     outline: 2px solid #D97706 !important;
     outline-offset: 2px !important;
@@ -35,15 +35,15 @@
   }
 
   .glass-panel-dark {
-    @apply bg-cozy-night-200/50 backdrop-blur-md border border-white/5 shadow-glass-dark transition-all duration-300;
+    @apply bg-booklyn-night-200/50 backdrop-blur-md border border-white/5 shadow-glass-dark transition-all duration-300;
   }
 
   .glass-panel {
-    @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-glass-light dark:bg-cozy-night-200/50 dark:backdrop-blur-md dark:border-white/5 dark:shadow-glass-dark transition-all duration-300;
+    @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-glass-light dark:bg-booklyn-night-200/50 dark:backdrop-blur-md dark:border-white/5 dark:shadow-glass-dark transition-all duration-300;
   }
 
   .glass-input-light {
-    @apply bg-white/25 border border-white/30 rounded-xl text-cozy-night-200 placeholder-cozy-night-100/50 focus:outline-none focus:border-cozy-amber/50 focus:bg-white/40 transition-all duration-300;
+    @apply bg-white/25 border border-white/30 rounded-xl text-booklyn-night-200 placeholder-booklyn-night-100/50 focus:outline-none focus:border-booklyn-amber/50 focus:bg-white/40 transition-all duration-300;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     padding-left: 1rem;
@@ -51,7 +51,7 @@
   }
 
   .glass-input-dark {
-    @apply bg-cozy-night-400/30 border border-white/5 rounded-xl text-cozy-cream-100 placeholder-cozy-cream-200/40 focus:outline-none focus:border-cozy-amber-light/30 focus:bg-cozy-night-400/50 transition-all duration-300;
+    @apply bg-booklyn-night-400/30 border border-white/5 rounded-xl text-booklyn-cream-100 placeholder-booklyn-cream-200/40 focus:outline-none focus:border-booklyn-amber-light/30 focus:bg-booklyn-night-400/50 transition-all duration-300;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     padding-left: 1rem;
@@ -59,21 +59,21 @@
   }
 
   .glass-input {
-    @apply bg-white/25 border border-white/30 rounded-xl text-cozy-night-200 placeholder-cozy-night-100/50 focus:outline-none focus:border-cozy-amber/50 focus:bg-white/40 transition-all duration-300 dark:bg-cozy-night-400/30 dark:border-white/5 dark:text-cozy-cream-100 dark:placeholder-cozy-cream-200/40 dark:focus:border-cozy-amber-light/30 dark:focus:bg-cozy-night-400/50;
+    @apply bg-white/25 border border-white/30 rounded-xl text-booklyn-night-200 placeholder-booklyn-night-100/50 focus:outline-none focus:border-booklyn-amber/50 focus:bg-white/40 transition-all duration-300 dark:bg-booklyn-night-400/30 dark:border-white/5 dark:text-booklyn-cream-100 dark:placeholder-booklyn-cream-200/40 dark:focus:border-booklyn-amber-light/30 dark:focus:bg-booklyn-night-400/50;
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
     padding-left: 1rem;
     padding-right: 1rem;
   }
 
-  /* Cozy Amber Glowing effects */
+  /* Booklyn Amber Glowing effects */
   .glow-border-amber {
-    @apply border-cozy-amber/30 dark:border-cozy-amber-light/20 shadow-glow-amber;
+    @apply border-booklyn-amber/30 dark:border-booklyn-amber-light/20 shadow-glow-amber;
   }
 
-  /* Cozy Lavender Glowing effects */
+  /* Booklyn Lavender Glowing effects */
   .glow-border-lavender {
-    @apply border-cozy-lavender/30 dark:border-cozy-lavender-light/20 shadow-glow-lavender;
+    @apply border-booklyn-lavender/30 dark:border-booklyn-lavender-light/20 shadow-glow-lavender;
   }
 
   /* Hide default scrollbars & style custom scrollbar */
@@ -87,7 +87,7 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-cozy-cream-300/40 dark:bg-cozy-night-100/30 rounded-full hover:bg-cozy-cream-300/60 dark:hover:bg-cozy-night-100/50;
+    @apply bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/30 rounded-full hover:bg-booklyn-cream-300/60 dark:hover:bg-booklyn-night-100/50;
   }
 
   .glass-dropdown {
@@ -121,7 +121,7 @@
   }
 }
 
-/* Background elements for cozy glowing vibes */
+/* Background elements for booklyn glowing vibes */
 .ambient-glow-1 {
   background: radial-gradient(circle, rgba(217, 119, 6, 0.08) 0%, rgba(217, 119, 6, 0) 70%);
 }

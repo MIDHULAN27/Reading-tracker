@@ -23,10 +23,10 @@ import {
 const GlassTooltip = ({ active, payload, label, unit = '' }) => {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="bg-white/80 dark:bg-cozy-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl text-xs">
-      <p className="font-bold text-cozy-night-300 dark:text-white mb-1">{label}</p>
+    <div className="bg-white/80 dark:bg-booklyn-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl text-xs">
+      <p className="font-bold text-booklyn-night-300 dark:text-white mb-1">{label}</p>
       {payload.map((entry, i) => (
-        <p key={i} className="text-cozy-night-100/70 dark:text-cozy-cream-200/60">
+        <p key={i} className="text-booklyn-night-100/70 dark:text-booklyn-cream-200/60">
           <span style={{ color: entry.color }} className="font-semibold">{entry.name}:</span>{' '}
           {entry.value}{unit}
         </p>
@@ -44,17 +44,17 @@ const StatCard = ({ label, value, icon: Icon, desc, trend, delay = 0 }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="glass-panel rounded-3xl p-5 border border-white/10 shadow-lg flex flex-col justify-between h-36 group hover:shadow-xl hover:border-cozy-amber/15 transition-all duration-500"
+      className="glass-panel rounded-3xl p-5 border border-white/10 shadow-lg flex flex-col justify-between h-36 group hover:shadow-xl hover:border-booklyn-amber/15 transition-all duration-500"
     >
       <div className="flex justify-between items-center">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40">{label}</span>
-        <div className="p-1.5 rounded-xl bg-cozy-amber/10 dark:bg-cozy-amber/5 group-hover:bg-cozy-amber/20 transition-colors">
-          <Icon className="w-4 h-4 text-cozy-amber" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">{label}</span>
+        <div className="p-1.5 rounded-xl bg-booklyn-amber/10 dark:bg-booklyn-amber/5 group-hover:bg-booklyn-amber/20 transition-colors">
+          <Icon className="w-4 h-4 text-booklyn-amber" />
         </div>
       </div>
       <div>
         <div className="flex items-end gap-2">
-          <h3 className="font-sans font-bold text-3xl tracking-tight text-cozy-night-300 dark:text-white leading-tight">
+          <h3 className="font-sans font-bold text-3xl tracking-tight text-booklyn-night-300 dark:text-white leading-tight">
             {value}
           </h3>
           {trend !== undefined && trend !== null && (
@@ -64,7 +64,7 @@ const StatCard = ({ label, value, icon: Icon, desc, trend, delay = 0 }) => {
             </span>
           )}
         </div>
-        <p className="text-[10px] text-cozy-night-100/45 dark:text-cozy-cream-200/40 mt-1 truncate">
+        <p className="text-[10px] text-booklyn-night-100/45 dark:text-booklyn-cream-200/40 mt-1 truncate">
           {desc}
         </p>
       </div>
@@ -84,13 +84,13 @@ const ChartCard = ({ children, icon: Icon, title, subtitle, className = '', dela
   >
     <div className="flex items-start justify-between">
       <div className="flex items-center gap-2.5">
-        <div className="p-2 rounded-xl bg-gradient-to-br from-cozy-amber/15 to-cozy-lavender/10 dark:from-cozy-amber/10 dark:to-cozy-lavender/5">
-          <Icon className="w-5 h-5 text-cozy-amber" />
+        <div className="p-2 rounded-xl bg-gradient-to-br from-booklyn-amber/15 to-booklyn-lavender/10 dark:from-booklyn-amber/10 dark:to-booklyn-lavender/5">
+          <Icon className="w-5 h-5 text-booklyn-amber" />
         </div>
         <div>
-          <h3 className="font-serif text-base font-bold text-cozy-night-300 dark:text-white leading-snug">{title}</h3>
+          <h3 className="font-serif text-base font-bold text-booklyn-night-300 dark:text-white leading-snug">{title}</h3>
           {subtitle && (
-            <p className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/35 font-semibold uppercase tracking-wider mt-0.5">{subtitle}</p>
+            <p className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 font-semibold uppercase tracking-wider mt-0.5">{subtitle}</p>
           )}
         </div>
       </div>
@@ -276,11 +276,11 @@ export default function Analytics() {
 
   // Heat color helper
   const getHeatColor = (count) => {
-    if (count === 0) return 'bg-cozy-cream-200/50 dark:bg-cozy-night-100/40';
-    if (count <= 10) return 'bg-cozy-amber/20 dark:bg-cozy-amber-light/10';
-    if (count <= 25) return 'bg-cozy-amber/45 dark:bg-cozy-amber-light/25';
-    if (count <= 50) return 'bg-cozy-amber/70 dark:bg-cozy-amber-light/50';
-    return 'bg-cozy-amber dark:bg-cozy-amber-light shadow-glow-amber';
+    if (count === 0) return 'bg-booklyn-cream-200/50 dark:bg-booklyn-night-100/40';
+    if (count <= 10) return 'bg-booklyn-amber/20 dark:bg-booklyn-amber-light/10';
+    if (count <= 25) return 'bg-booklyn-amber/45 dark:bg-booklyn-amber-light/25';
+    if (count <= 50) return 'bg-booklyn-amber/70 dark:bg-booklyn-amber-light/50';
+    return 'bg-booklyn-amber dark:bg-booklyn-amber-light shadow-glow-amber';
   };
 
   // Get active chart data based on timeRange
@@ -295,7 +295,7 @@ export default function Analytics() {
       {/* Page Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-2">Reading Analytics</h1>
-        <p className="text-sm text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+        <p className="text-sm text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
           Visualize your reading persistence, streaking patterns, and library insights.
         </p>
       </motion.div>
@@ -319,17 +319,17 @@ export default function Analytics() {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-cozy-amber" />
-            <span className="text-xs font-bold text-cozy-night-300 dark:text-white">Today's Reading Goal</span>
+            <Zap className="w-4 h-4 text-booklyn-amber" />
+            <span className="text-xs font-bold text-booklyn-night-300 dark:text-white">Today's Reading Goal</span>
           </div>
-          <span className="text-xs font-bold text-cozy-amber">{todayMinutes} / {dailyGoalMinutes} min</span>
+          <span className="text-xs font-bold text-booklyn-amber">{todayMinutes} / {dailyGoalMinutes} min</span>
         </div>
-        <div className="h-3 bg-cozy-cream-300/40 dark:bg-cozy-night-100/30 rounded-full overflow-hidden">
+        <div className="h-3 bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/30 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${goalProgress}%` }}
             transition={{ duration: 1, delay: 0.4 }}
-            className={`h-full rounded-full transition-all ${goalProgress >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark shadow-glow-amber'}`}
+            className={`h-full rounded-full transition-all ${goalProgress >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark shadow-glow-amber'}`}
           />
         </div>
         {goalProgress >= 100 && (
@@ -365,8 +365,8 @@ export default function Analytics() {
                 onClick={() => setTimeRange(tab.id)}
                 className={`px-3.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
                   timeRange === tab.id
-                    ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-md'
-                    : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+                    ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white shadow-md'
+                    : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-300 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -388,27 +388,27 @@ export default function Analytics() {
                       <stop offset="95%" stopColor={CHART_LAVENDER} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-cozy-cream-300/30 dark:text-cozy-night-100/15" />
-                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-booklyn-cream-300/30 dark:text-booklyn-night-100/15" />
+                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
                   <Tooltip content={<GlassTooltip />} />
                   <Area type="monotone" dataKey="minutes" name="Minutes" stroke={CHART_AMBER} fill="url(#gradientMinutes)" strokeWidth={2.5} dot={{ r: 4, fill: CHART_AMBER, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 2 }} />
                   <Area type="monotone" dataKey="pages" name="Pages" stroke={CHART_LAVENDER} fill="url(#gradientPages)" strokeWidth={2} dot={{ r: 3, fill: CHART_LAVENDER, strokeWidth: 2, stroke: '#fff' }} />
                 </AreaChart>
               ) : timeRange === 'monthly' ? (
                 <BarChart data={activeChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barCategoryGap="20%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-cozy-cream-300/30 dark:text-cozy-night-100/15" />
-                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-booklyn-cream-300/30 dark:text-booklyn-night-100/15" />
+                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
                   <Tooltip content={<GlassTooltip />} />
                   <Bar dataKey="minutes" name="Minutes" fill={CHART_AMBER} radius={[8, 8, 0, 0]} />
                   <Bar dataKey="pages" name="Pages" fill={CHART_LAVENDER} radius={[8, 8, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={activeChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-cozy-cream-300/30 dark:text-cozy-night-100/15" />
-                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-cozy-night-100/50 dark:text-cozy-cream-200/40" axisLine={false} tickLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-booklyn-cream-300/30 dark:text-booklyn-night-100/15" />
+                  <XAxis dataKey={activeXKey} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: 'currentColor' }} className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40" axisLine={false} tickLine={false} />
                   <Tooltip content={<GlassTooltip />} />
                   <Line type="monotone" dataKey="minutes" name="Minutes" stroke={CHART_AMBER} strokeWidth={2.5} dot={{ r: 4, fill: CHART_AMBER, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                   <Line type="monotone" dataKey="pages" name="Pages" stroke={CHART_LAVENDER} strokeWidth={2} dot={{ r: 3, fill: CHART_LAVENDER, strokeWidth: 2, stroke: '#fff' }} />
@@ -418,7 +418,7 @@ export default function Analytics() {
           </div>
 
           {/* Legend pills */}
-          <div className="flex items-center gap-4 text-[10px] font-bold text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+          <div className="flex items-center gap-4 text-[10px] font-bold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_AMBER }} /> Minutes Read</div>
             <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_LAVENDER }} /> Pages Read</div>
           </div>
@@ -427,7 +427,7 @@ export default function Analytics() {
         {/* Chart B: Genre Distribution (Pie Chart) */}
         <ChartCard icon={PieChart} title="Genre Breakdown" subtitle="Your library composition" delay={0.4}>
           {genreData.length === 0 ? (
-            <div className="text-center py-16 space-y-2 text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+            <div className="text-center py-16 space-y-2 text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
               <BookOpen className="w-8 h-8 mx-auto opacity-30" />
               <p>Add books with genres to see distribution.</p>
             </div>
@@ -454,9 +454,9 @@ export default function Analytics() {
                       if (!active || !payload || payload.length === 0) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-white/80 dark:bg-cozy-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl text-xs">
-                          <p className="font-bold text-cozy-night-300 dark:text-white">{d.name}</p>
-                          <p className="text-cozy-night-100/70 dark:text-cozy-cream-200/60">{d.value} {d.value === 1 ? 'book' : 'books'}</p>
+                        <div className="bg-white/80 dark:bg-booklyn-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl text-xs">
+                          <p className="font-bold text-booklyn-night-300 dark:text-white">{d.name}</p>
+                          <p className="text-booklyn-night-100/70 dark:text-booklyn-cream-200/60">{d.value} {d.value === 1 ? 'book' : 'books'}</p>
                         </div>
                       );
                     }} />
@@ -470,9 +470,9 @@ export default function Analytics() {
                   <div key={genre.name} className="flex items-center justify-between py-0.5">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: GENRE_COLORS[idx % GENRE_COLORS.length] }} />
-                      <span className="font-medium text-cozy-night-100/80 dark:text-cozy-cream-200/70 truncate max-w-[110px]">{genre.name}</span>
+                      <span className="font-medium text-booklyn-night-100/80 dark:text-booklyn-cream-200/70 truncate max-w-[110px]">{genre.name}</span>
                     </div>
-                    <span className="font-semibold text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+                    <span className="font-semibold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                       {genre.value} ({Math.round((genre.value / metrics.totalBooks) * 100)}%)
                     </span>
                   </div>
@@ -504,7 +504,7 @@ export default function Analytics() {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.3, delay: weekIdx * 0.02 }}
                           title={`${block.count} pages — ${formattedDate}`}
-                          className={`aspect-square w-full rounded-md cursor-pointer transition-all duration-200 hover:scale-[1.2] hover:z-10 border border-transparent hover:border-cozy-amber/30 ${getHeatColor(block.count)}`}
+                          className={`aspect-square w-full rounded-md cursor-pointer transition-all duration-200 hover:scale-[1.2] hover:z-10 border border-transparent hover:border-booklyn-amber/30 ${getHeatColor(block.count)}`}
                         />
                       );
                     })}
@@ -514,13 +514,13 @@ export default function Analytics() {
             </div>
 
             {/* Heatmap Legend */}
-            <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold uppercase tracking-wider text-cozy-night-100/40 dark:text-cozy-cream-200/40 mt-4 pr-2">
+            <div className="flex items-center justify-end gap-1.5 text-[9px] font-bold uppercase tracking-wider text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 mt-4 pr-2">
               <span>Sparse</span>
-              <div className="w-3.5 h-3.5 rounded bg-cozy-cream-200/50 dark:bg-cozy-night-100/40" />
-              <div className="w-3.5 h-3.5 rounded bg-cozy-amber/20 dark:bg-cozy-amber-light/10" />
-              <div className="w-3.5 h-3.5 rounded bg-cozy-amber/45 dark:bg-cozy-amber-light/25" />
-              <div className="w-3.5 h-3.5 rounded bg-cozy-amber/70 dark:bg-cozy-amber-light/50" />
-              <div className="w-3.5 h-3.5 rounded bg-cozy-amber dark:bg-cozy-amber-light" />
+              <div className="w-3.5 h-3.5 rounded bg-booklyn-cream-200/50 dark:bg-booklyn-night-100/40" />
+              <div className="w-3.5 h-3.5 rounded bg-booklyn-amber/20 dark:bg-booklyn-amber-light/10" />
+              <div className="w-3.5 h-3.5 rounded bg-booklyn-amber/45 dark:bg-booklyn-amber-light/25" />
+              <div className="w-3.5 h-3.5 rounded bg-booklyn-amber/70 dark:bg-booklyn-amber-light/50" />
+              <div className="w-3.5 h-3.5 rounded bg-booklyn-amber dark:bg-booklyn-amber-light" />
               <span>Heavy</span>
             </div>
           </div>
@@ -531,7 +531,7 @@ export default function Analytics() {
           {/* Status Donut */}
           <ChartCard icon={BookMarked} title="Library Status" subtitle="Distribution by reading state" delay={0.5}>
             {statusData.length === 0 ? (
-              <div className="text-center py-10 text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+              <div className="text-center py-10 text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                 <BookOpen className="w-6 h-6 mx-auto opacity-30 mb-2" />
                 <p>No books in library yet.</p>
               </div>
@@ -558,8 +558,8 @@ export default function Analytics() {
                         if (!active || !payload || payload.length === 0) return null;
                         const d = payload[0].payload;
                         return (
-                          <div className="bg-white/80 dark:bg-cozy-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-3 py-2 shadow-xl text-xs">
-                            <p className="font-bold text-cozy-night-300 dark:text-white">{d.name}: {d.value}</p>
+                          <div className="bg-white/80 dark:bg-booklyn-night-200/90 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl px-3 py-2 shadow-xl text-xs">
+                            <p className="font-bold text-booklyn-night-300 dark:text-white">{d.name}: {d.value}</p>
                           </div>
                         );
                       }} />
@@ -572,9 +572,9 @@ export default function Analytics() {
                     <div key={s.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[i] }} />
-                        <span className="font-medium text-cozy-night-100/80 dark:text-cozy-cream-200/70">{s.name}</span>
+                        <span className="font-medium text-booklyn-night-100/80 dark:text-booklyn-cream-200/70">{s.name}</span>
                       </div>
-                      <span className="font-semibold text-cozy-night-100/50 dark:text-cozy-cream-200/40">{s.value}</span>
+                      <span className="font-semibold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">{s.value}</span>
                     </div>
                   ))}
                 </div>
@@ -590,12 +590,12 @@ export default function Analytics() {
             className="glass-panel rounded-3xl p-5 border border-white/10 shadow-lg space-y-3"
           >
             <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-cozy-amber fill-cozy-amber" />
-              <span className="text-xs font-bold text-cozy-night-300 dark:text-white">Favorite Genres</span>
+              <Star className="w-4 h-4 text-booklyn-amber fill-booklyn-amber" />
+              <span className="text-xs font-bold text-booklyn-night-300 dark:text-white">Favorite Genres</span>
             </div>
 
             {topGenres.length === 0 ? (
-              <p className="text-[11px] text-cozy-night-100/40 dark:text-cozy-cream-200/35">Add books to track genre preferences.</p>
+              <p className="text-[11px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/35">Add books to track genre preferences.</p>
             ) : (
               <div className="space-y-2.5">
                 {topGenres.map((g, i) => {
@@ -603,15 +603,15 @@ export default function Analytics() {
                   return (
                     <div key={g.name} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-semibold text-cozy-night-100/70 dark:text-cozy-cream-200/60 flex items-center gap-1.5">
+                        <span className="font-semibold text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 flex items-center gap-1.5">
                           {i === 0 && '🥇'}
                           {i === 1 && '🥈'}
                           {i === 2 && '🥉'}
                           {g.name}
                         </span>
-                        <span className="font-bold text-cozy-night-100/50 dark:text-cozy-cream-200/40">{pct}%</span>
+                        <span className="font-bold text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">{pct}%</span>
                       </div>
-                      <div className="h-2 bg-cozy-cream-300/40 dark:bg-cozy-night-100/30 rounded-full overflow-hidden">
+                      <div className="h-2 bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/30 rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${pct}%` }}
@@ -633,8 +633,8 @@ export default function Analytics() {
       <ChartCard icon={TrendingUp} title="Session Insights" subtitle="Average reading depth per session" delay={0.6}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Avg Session Duration', value: `${metrics.avgMinutesPerSession} min`, icon: Clock, color: 'text-cozy-amber' },
-            { label: 'Avg Pages per Session', value: `${metrics.avgPagesPerSession} pages`, icon: FileText, color: 'text-cozy-lavender' },
+            { label: 'Avg Session Duration', value: `${metrics.avgMinutesPerSession} min`, icon: Clock, color: 'text-booklyn-amber' },
+            { label: 'Avg Pages per Session', value: `${metrics.avgPagesPerSession} pages`, icon: FileText, color: 'text-booklyn-lavender' },
             { label: 'Total Sessions Logged', value: logs.length, icon: BookOpen, color: 'text-emerald-500' },
           ].map((item, i) => {
             const ItemIcon = item.icon;
@@ -650,8 +650,8 @@ export default function Analytics() {
                   <ItemIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/35">{item.label}</p>
-                  <p className="font-sans font-bold text-lg text-cozy-night-300 dark:text-white leading-tight">{item.value}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/35">{item.label}</p>
+                  <p className="font-sans font-bold text-lg text-booklyn-night-300 dark:text-white leading-tight">{item.value}</p>
                 </div>
               </motion.div>
             );

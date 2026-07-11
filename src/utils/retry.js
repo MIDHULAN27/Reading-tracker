@@ -28,7 +28,7 @@ export async function fetchWithRetry(fn, retries = 3, delay = 1000, factor = 2, 
     }
 
     console.warn(
-      `Cozy Reads API: Transient failure encountered. ` +
+      `Booklyn API: Transient failure encountered. ` +
       `Retrying in ${Math.round(nextDelay)}ms... (${retries} attempts remaining). ` +
       `Reason: "${error.message}"`
     );

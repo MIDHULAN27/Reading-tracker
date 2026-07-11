@@ -4,11 +4,13 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SidebarProvider, useSidebar } from './context/SidebarContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import PremiumLoginModal from './components/PremiumLoginModal';
 import DashboardLayout from './layouts/DashboardLayout';
 import LoadingScreen from './components/LoadingScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuthStore } from './store/useAuthStore';
 import { useSidebarStore } from './store/useSidebarStore';
+import SetupHelper from './components/SetupHelper';
 
 // Code-splitting all route entry-points for major Bundle & FCP Optimizations
 const Auth = lazy(() => import('./pages/Auth'));
@@ -28,64 +30,113 @@ const ReaderPage = lazy(() => import('./pages/ReaderPage'));
 function AppContent() {
   const initialized = useAuthStore((state) => state.initialized);
   const hydrated = useSidebarStore((state) => state.hydrated);
+  const tablesReady = useAuthStore((state) => state.tablesReady);
+  const isConfigured = useAuthStore((state) => state.isConfigured);
 
   // Hydration shield to prevent hydration mismatches and uninitialized rendering states
   if (!initialized || !hydrated) {
     return <LoadingScreen />;
   }
 
+  // Database setup helper overlay if tables have not been created in Supabase yet
+  if (isConfigured && !tablesReady) {
+    return <SetupHelper />;
+  }
+
   return (
     <Suspense fallback={<LoadingScreen />}>
+      {/* Global Premium Login Modal — can be triggered from anywhere via useGuestGuardStore */}
+      <PremiumLoginModal />
+
       <Routes>
         {/* Public Routes */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
 
-        {/* Protected Dashboard Layout Parent (Keeps sidebar/nav state permanently mounted) */}
+        {/* Dashboard Layout — Guest-browsable pages (allowGuest=true, the default) */}
         <Route
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowGuest={true}>
               <DashboardLayout />
             </ProtectedRoute>
           }
         >
+          {/* === GUEST-ACCESSIBLE (browse-only) === */}
           <Route path="/" element={<Dashboard />} />
-          <Route path="/library" element={<Library />} />
           <Route path="/discover" element={<Discover />} />
           <Route path="/book/:id" element={<BookDetails />} />
           <Route path="/paper/:id" element={<PaperDetails />} />
-          <Route path="/saved-shelf" element={<Saved />} />
-          <Route path="/reading-profile" element={<Profile />} />
-          <Route path="/goals" element={<Goals />} />
-          
+
+          {/* === AUTH-REQUIRED pages (still inside DashboardLayout but redirect guests) === */}
+          <Route
+            path="/library"
+            element={
+              <ProtectedRoute allowGuest={false}>
+                <Library />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/saved-shelf"
+            element={
+              <ProtectedRoute allowGuest={false}>
+                <Saved />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reading-profile"
+            element={
+              <ProtectedRoute allowGuest={false}>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/goals"
+            element={
+              <ProtectedRoute allowGuest={false}>
+                <Goals />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/analytics"
             element={
-              <Suspense
-                fallback={
-                  <div className="space-y-6 animate-pulse p-6">
-                    <div className="h-8 bg-cozy-cream-300/40 dark:bg-cozy-night-100/30 rounded-xl w-1/3" />
-                    <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="h-36 bg-cozy-cream-300/30 dark:bg-cozy-night-100/20 rounded-3xl" />
-                      ))}
+              <ProtectedRoute allowGuest={false}>
+                <Suspense
+                  fallback={
+                    <div className="space-y-6 animate-pulse p-6">
+                      <div className="h-8 bg-booklyn-cream-300/40 dark:bg-booklyn-night-100/30 rounded-xl w-1/3" />
+                      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="h-36 bg-booklyn-cream-300/30 dark:bg-booklyn-night-100/20 rounded-3xl" />
+                        ))}
+                      </div>
+                      <div className="h-80 bg-booklyn-cream-300/20 dark:bg-booklyn-night-100/15 rounded-3xl" />
                     </div>
-                    <div className="h-80 bg-cozy-cream-300/20 dark:bg-cozy-night-100/15 rounded-3xl" />
-                  </div>
-                }
-              >
-                <Analytics />
-              </Suspense>
+                  }
+                >
+                  <Analytics />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
-          <Route path="/settings" element={<Settings />} />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute allowGuest={false}>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* Protected Fullscreen Reader (Does not display Sidebar) */}
         <Route
           path="/read/:id"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowGuest={false}>
               <ReaderPage />
             </ProtectedRoute>
           }

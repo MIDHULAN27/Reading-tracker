@@ -10,7 +10,7 @@ import {
   Home, BookOpen, Search, BarChart2, Settings, LogOut, 
   Menu, X, Sun, Moon, ChevronLeft, ChevronRight, User, Database,
   Bell, Bookmark, CheckCircle, Target, Award, ShieldAlert, Sparkles,
-  Inbox, Check, Trash
+  Inbox, Check, Trash, Lock
 } from 'lucide-react';
 import logoBrandLight from '../assets/logo-brand-light.png';
 import logoBrandDarkWhite from '../assets/logo-brand-dark-white.png';
@@ -23,6 +23,7 @@ import BookDetailSlideOver from '../components/BookDetailSlideOver';
 import SyncStatusBanner from '../components/SyncStatusBanner';
 import useSEOSync from '../hooks/useSEOSync';
 import { NotificationDropdown, ProfileDropdown } from '../components/NavbarDropdowns';
+import { useGuestGuard } from '../hooks/useGuestGuard';
 
 export default function DashboardLayout({ children }) {
   useSEOSync();
@@ -43,6 +44,16 @@ export default function DashboardLayout({ children }) {
   const { books, fetchBooks } = useLibraryStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const guard = useGuestGuard();
+
+  const handleNavClick = (e, item) => {
+    const isRestricted = ['/library', '/saved-shelf', '/reading-profile', '/analytics', '/goals', '/settings'].includes(item.path);
+    if (isRestricted) {
+      if (guard(item.label, item.path)) {
+        e.preventDefault();
+      }
+    }
+  };
 
   // Synchronize router location with active route in Zustand store
   useEffect(() => {
@@ -90,10 +101,12 @@ export default function DashboardLayout({ children }) {
     { label: 'Library', path: '/library', icon: BookOpen },
   ];
 
-  // Fetch books on mount if empty
+  // Fetch books on mount if empty and user is authenticated
   useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+    if (user) {
+      fetchBooks();
+    }
+  }, [fetchBooks, user]);
 
   // Search filter
   useEffect(() => {
@@ -137,7 +150,7 @@ export default function DashboardLayout({ children }) {
 
   const getUserInitials = () => {
     if (!user) return 'R';
-    const name = user.user_metadata?.full_name || user.email || 'Cozy Reader';
+    const name = user.user_metadata?.full_name || user.email || 'Booklyn';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
@@ -169,7 +182,7 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen flex bg-cozy-cream-50 dark:bg-cozy-night-300 text-cozy-night-100 dark:text-cozy-cream-50 transition-colors duration-500 overflow-hidden relative font-sans">
+    <div className="min-h-screen flex bg-booklyn-cream-50 dark:bg-booklyn-night-300 text-booklyn-night-100 dark:text-booklyn-cream-50 transition-colors duration-500 overflow-hidden relative font-sans">
       {/* Background ambient glowing spheres */}
       <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] rounded-full ambient-glow-1 pointer-events-none z-0" />
       <div className="absolute bottom-[-100px] left-[-100px] w-[500px] h-[500px] rounded-full ambient-glow-2 pointer-events-none z-0" />
@@ -205,7 +218,7 @@ export default function DashboardLayout({ children }) {
           </div>
           <button 
             onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-1.5 rounded-lg text-cozy-night-100/50 hover:text-cozy-night-100 dark:text-cozy-cream-200/50 dark:hover:text-cozy-cream-100 bg-white/15 dark:bg-white/5 border border-white/10 hover:scale-105 active:scale-95 transition-all"
+            className="p-1.5 rounded-lg text-booklyn-night-100/50 hover:text-booklyn-night-100 dark:text-booklyn-cream-200/50 dark:hover:text-booklyn-cream-100 bg-white/15 dark:bg-white/5 border border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
             {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
@@ -217,31 +230,45 @@ export default function DashboardLayout({ children }) {
             const active = isActive(item.path);
             const Icon = item.icon;
 
+            const isRestricted = ['/library', '/saved-shelf', '/reading-profile', '/analytics', '/goals', '/settings'].includes(item.path);
             return (
               <NavLink 
                 key={item.path} 
                 to={item.path}
+                onClick={(e) => handleNavClick(e, item)}
                 className="block relative group"
               >
                 <div className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 relative ${
                   active 
-                    ? 'glass-panel bg-white/40 dark:bg-white/10 text-cozy-amber dark:text-cozy-amber-light font-semibold shadow-sm' 
-                    : 'hover:bg-white/20 dark:hover:bg-white/5 text-cozy-night-100/70 dark:text-cozy-cream-200/60 hover:text-cozy-night-100 dark:hover:text-cozy-cream-100'
+                    ? 'glass-panel bg-white/40 dark:bg-white/10 text-booklyn-amber dark:text-booklyn-amber-light font-semibold shadow-sm' 
+                    : 'hover:bg-white/20 dark:hover:bg-white/5 text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 hover:text-booklyn-night-100 dark:hover:text-booklyn-cream-100'
                 }`}>
-                  <Icon className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-105 ${active ? 'text-cozy-amber dark:text-cozy-amber-light' : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 group-hover:text-cozy-amber'}`} />
+                  <div className="relative flex-shrink-0">
+                    <Icon className={`w-5 h-5 transition-transform group-hover:scale-105 ${active ? 'text-booklyn-amber dark:text-booklyn-amber-light' : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 group-hover:text-booklyn-amber'}`} />
+                    {!user && isSidebarCollapsed && isRestricted && (
+                      <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-booklyn-night-300/80 dark:bg-booklyn-night-400/80 border border-white/25 rounded-full flex items-center justify-center shadow-sm">
+                        <Lock className="w-1.5 h-1.5 text-booklyn-amber" />
+                      </span>
+                    )}
+                  </div>
                   {!isSidebarCollapsed && (
-                    <motion.span 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-xs font-semibold tracking-wide"
-                    >
-                      {item.label}
-                    </motion.span>
+                    <div className="flex items-center justify-between flex-1 min-w-0">
+                      <motion.span 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs font-semibold tracking-wide truncate"
+                      >
+                        {item.label}
+                      </motion.span>
+                      {!user && isRestricted && (
+                        <Lock className="w-3 h-3 text-booklyn-night-100/30 dark:text-booklyn-cream-200/35 flex-shrink-0 ml-1.5" />
+                      )}
+                    </div>
                   )}
                   {active && (
                     <motion.div 
                       layoutId="active-pill" 
-                      className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-cozy-amber rounded-full" 
+                      className="absolute left-0 top-1/4 bottom-1/4 w-[3px] bg-booklyn-amber rounded-full" 
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
@@ -252,26 +279,50 @@ export default function DashboardLayout({ children }) {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-white/10 space-y-4">
-          {/* User Profile summary card */}
-          <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'px-2'}`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cozy-amber to-cozy-lavender text-white flex items-center justify-center text-sm font-bold font-sans shadow-md flex-shrink-0 border border-white/20">
-              {getUserInitials()}
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold truncate">
-                  {user?.user_metadata?.full_name || 'Cozy Reader'}
-                </p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Database className="w-3 h-3 text-green-500" />
-                  <span className="text-[9px] font-bold tracking-wider uppercase text-cozy-night-100/40 dark:text-cozy-cream-200/40 truncate">
-                    Cloud Sync
-                  </span>
-                </div>
+        <div className="p-4 border-t border-white/10">
+          {!user ? (
+            isSidebarCollapsed ? (
+              <div className="flex justify-center py-2">
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="w-10 h-10 rounded-xl bg-booklyn-amber/10 hover:bg-booklyn-amber/20 border border-booklyn-amber/20 text-booklyn-amber flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-sm"
+                  title="Sign In"
+                >
+                  <User className="w-5 h-5" />
+                </button>
               </div>
-            )}
-          </div>
+            ) : (
+              <div className="px-1 py-2">
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-sans text-xs font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Sign In / Register</span>
+                </button>
+              </div>
+            )
+          ) : (
+            /* User Profile summary card */
+            <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : 'px-2'}`}>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-booklyn-amber to-booklyn-lavender text-white flex items-center justify-center text-sm font-bold font-sans shadow-md flex-shrink-0 border border-white/20">
+                {getUserInitials()}
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold truncate">
+                    {user?.user_metadata?.full_name || 'Booklyn'}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Database className="w-3 h-3 text-green-500" />
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 truncate">
+                      Cloud Sync
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </aside>
 
@@ -315,48 +366,74 @@ export default function DashboardLayout({ children }) {
                 {navItems.map((item) => {
                   const active = isActive(item.path);
                   const Icon = item.icon;
+                  const isRestricted = ['/library', '/saved-shelf', '/reading-profile', '/analytics', '/goals', '/settings'].includes(item.path);
 
                   return (
                     <NavLink 
                       key={item.path} 
                       to={item.path}
-                      onClick={() => setIsMobileSidebarOpen(false)}
+                      onClick={(e) => {
+                        handleNavClick(e, item);
+                        if (!isRestricted || user) {
+                          setIsMobileSidebarOpen(false);
+                        }
+                      }}
                       className="block"
                     >
-                      <div className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
+                      <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                         active 
-                          ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-semibold shadow-md shadow-cozy-amber/15' 
-                          : 'hover:bg-white/10 text-cozy-night-100/70 dark:text-cozy-cream-200/60'
+                          ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-semibold shadow-md shadow-booklyn-amber/15' 
+                          : 'hover:bg-white/10 text-booklyn-night-100/70 dark:text-booklyn-cream-200/60'
                       }`}>
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                        <div className="flex items-center gap-4">
+                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          <span className="text-xs font-semibold tracking-wide">{item.label}</span>
+                        </div>
+                        {!user && isRestricted && (
+                          <Lock className="w-3.5 h-3.5 text-booklyn-night-100/30 dark:text-booklyn-cream-200/40" />
+                        )}
                       </div>
                     </NavLink>
                   );
                 })}
               </nav>
 
-              <div className="border-t border-white/10 pt-4 space-y-4">
-                <div className="flex items-center gap-3 px-2">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cozy-amber to-cozy-lavender text-white flex items-center justify-center text-sm font-bold">
-                    {getUserInitials()}
+              <div className="border-t border-white/10 pt-4">
+                {!user ? (
+                  <button
+                    onClick={() => {
+                      setIsMobileSidebarOpen(false);
+                      navigate('/auth');
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-sans text-xs font-bold shadow-md active:scale-95 transition-all"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Sign In to Booklyn</span>
+                  </button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 px-2">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-booklyn-amber to-booklyn-lavender text-white flex items-center justify-center text-sm font-bold">
+                        {getUserInitials()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">
+                          {user?.user_metadata?.full_name || 'Booklyn'}
+                        </p>
+                        <p className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 truncate max-w-[150px]">
+                          {user?.email || 'Guest Reader'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/25 active:scale-95 transition-all text-xs font-bold"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
                   </div>
-                  <div>
-                    <p className="text-sm font-bold">
-                      {user?.user_metadata?.full_name || 'Cozy Reader'}
-                    </p>
-                    <p className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 truncate max-w-[150px]">
-                      {user?.email || 'Guest Reader'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/25 active:scale-95 transition-all text-xs font-bold"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
+                )}
               </div>
             </motion.aside>
           </>
@@ -379,7 +456,7 @@ export default function DashboardLayout({ children }) {
 
             {/* Premium Interactive Navbar Search Bar */}
             <div ref={searchRef} className="relative max-w-md w-full hidden sm:block">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/35" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/35" />
               <input
                 type="text"
                 id="search-shelves"
@@ -388,9 +465,9 @@ export default function DashboardLayout({ children }) {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ paddingLeft: '2.5rem', paddingRight: '3rem' }}
-                className="w-full !pl-10 !pr-12 py-2 glass-input rounded-xl text-xs focus:ring-1 focus:ring-cozy-amber/30 transition-all font-semibold"
+                className="w-full !pl-10 !pr-12 py-2 glass-input rounded-xl text-xs focus:ring-1 focus:ring-booklyn-amber/30 transition-all font-semibold"
               />
-              <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 px-1.5 py-0.5 rounded-lg border border-cozy-cream-300 dark:border-cozy-night-100 bg-white/20 dark:bg-black/10 text-[9px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/30">
+              <div className="absolute right-2.5 top-1/2 transform -translate-y-1/2 px-1.5 py-0.5 rounded-lg border border-booklyn-cream-300 dark:border-booklyn-night-100 bg-white/20 dark:bg-black/10 text-[9px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/30">
                 ⌘K
               </div>
 
@@ -403,14 +480,14 @@ export default function DashboardLayout({ children }) {
                     exit={{ opacity: 0, y: 10 }}
                     className="absolute top-[110%] left-0 right-0 glass-overlay rounded-2xl p-2 border border-white/15 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.45)] z-[100] max-h-80 overflow-y-auto space-y-1 custom-scrollbar text-xs pointer-events-auto"
                   >
-                    <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-cozy-night-100/40 dark:text-cozy-cream-200/45 border-b border-white/5 flex items-center justify-between">
+                    <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-booklyn-night-100/40 dark:text-booklyn-cream-200/45 border-b border-white/5 flex items-center justify-between">
                       <span>Search Results ({searchResults.length})</span>
-                      <Sparkles className="w-3 h-3 text-cozy-amber animate-pulse" />
+                      <Sparkles className="w-3 h-3 text-booklyn-amber animate-pulse" />
                     </div>
 
                     {searchResults.length === 0 ? (
-                      <div className="p-4 text-center text-cozy-night-100/50 dark:text-cozy-cream-200/40 italic flex flex-col items-center gap-1.5">
-                        <ShieldAlert className="w-5 h-5 text-cozy-amber/60" />
+                      <div className="p-4 text-center text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 italic flex flex-col items-center gap-1.5">
+                        <ShieldAlert className="w-5 h-5 text-booklyn-amber/60" />
                         <span>No books matching your query in library.</span>
                       </div>
                     ) : (
@@ -420,7 +497,7 @@ export default function DashboardLayout({ children }) {
                           onClick={() => handleResultClick(book)}
                           className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/20 dark:hover:bg-white/10 cursor-pointer transition-all border border-transparent hover:border-white/5 active:scale-98"
                         >
-                          <div className="w-8 h-11 rounded-lg overflow-hidden bg-cozy-cream-200 dark:bg-cozy-night-400 flex-shrink-0 shadow-sm">
+                          <div className="w-8 h-11 rounded-lg overflow-hidden bg-booklyn-cream-200 dark:bg-booklyn-night-400 flex-shrink-0 shadow-sm">
                             {book.cover_url ? (
                               <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
                             ) : (
@@ -431,9 +508,9 @@ export default function DashboardLayout({ children }) {
                           </div>
                           <div className="min-w-0 flex-1">
                             <h5 className="font-serif font-bold truncate leading-snug">{book.title}</h5>
-                            <p className="text-[10px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate mt-0.5">by {book.author}</p>
+                            <p className="text-[10px] text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 truncate mt-0.5">by {book.author}</p>
                           </div>
-                          <div className="flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-cozy-amber/10 text-cozy-amber border border-cozy-amber/20 capitalize">
+                          <div className="flex-shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full bg-booklyn-amber/10 text-booklyn-amber border border-booklyn-amber/20 capitalize">
                             {book.status === 'to_read' ? 'To Read' : book.status}
                           </div>
                         </div>
@@ -452,7 +529,7 @@ export default function DashboardLayout({ children }) {
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
               aria-live="polite"
-              className="p-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 active:scale-95 hover:scale-105 transition-all text-cozy-amber dark:text-cozy-amber-light"
+              className="p-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 active:scale-95 hover:scale-105 transition-all text-booklyn-amber dark:text-booklyn-amber-light"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -463,11 +540,11 @@ export default function DashboardLayout({ children }) {
                 onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                 aria-label="View notifications center"
                 aria-expanded={isNotificationOpen}
-                className="p-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 active:scale-95 hover:scale-105 transition-all text-cozy-night-100 dark:text-cozy-cream-50 relative"
+                className="p-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 active:scale-95 hover:scale-105 transition-all text-booklyn-night-100 dark:text-booklyn-cream-50 relative"
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white font-sans font-bold text-[9px] flex items-center justify-center animate-pulse border-2 border-cozy-cream-50 dark:border-cozy-night-300">
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white font-sans font-bold text-[9px] flex items-center justify-center animate-pulse border-2 border-booklyn-cream-50 dark:border-booklyn-night-300">
                     {unreadCount}
                   </span>
                 )}
@@ -486,27 +563,39 @@ export default function DashboardLayout({ children }) {
               </AnimatePresence>
             </div>
 
-            {/* 3. Responsive User Dropdown Panel */}
+            {/* 3. Responsive User Dropdown Panel / Sign In Button */}
             <div ref={profileRef} className="relative">
-              <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                aria-label="User profile settings menu"
-                aria-expanded={isProfileDropdownOpen}
-                className="w-10 h-10 rounded-full bg-gradient-to-tr from-cozy-amber to-cozy-lavender text-white flex items-center justify-center font-sans font-bold shadow-md border-2 border-white/20 dark:border-white/10 active:scale-95 hover:scale-105 transition-all select-none"
-              >
-                {getUserInitials()}
-              </button>
+              {!user ? (
+                <button 
+                  onClick={() => navigate('/auth')}
+                  className="flex items-center gap-2 py-2 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-sans text-xs font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    aria-label="User profile settings menu"
+                    aria-expanded={isProfileDropdownOpen}
+                    className="w-10 h-10 rounded-full bg-gradient-to-tr from-booklyn-amber to-booklyn-lavender text-white flex items-center justify-center font-sans font-bold shadow-md border-2 border-white/20 dark:border-white/10 active:scale-95 hover:scale-105 transition-all select-none"
+                  >
+                    {getUserInitials()}
+                  </button>
 
-              <AnimatePresence>
-                {isProfileDropdownOpen && (
-                  <ProfileDropdown
-                    user={user}
-                    initials={getUserInitials()}
-                    handleSignOut={handleSignOut}
-                    onClose={closeProfileDropdown}
-                  />
-                )}
-              </AnimatePresence>
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <ProfileDropdown
+                        user={user}
+                        initials={getUserInitials()}
+                        handleSignOut={handleSignOut}
+                        onClose={closeProfileDropdown}
+                      />
+                    )}
+                  </AnimatePresence>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -528,24 +617,31 @@ export default function DashboardLayout({ children }) {
           {mobileBottomItems.map((item) => {
             const active = isActive(item.path);
             const Icon = item.icon;
+            const isRestricted = ['/library', '/saved-shelf', '/reading-profile', '/analytics', '/goals', '/settings'].includes(item.path);
 
             return (
               <Link 
                 key={item.path} 
                 to={item.path}
+                onClick={(e) => handleNavClick(e, item)}
                 className="flex-1 flex flex-col items-center justify-center h-full relative"
               >
-                <div className={`p-2.5 rounded-xl transition-all duration-300 ${
+                <div className={`p-2.5 rounded-xl transition-all duration-300 relative ${
                   active 
-                    ? 'bg-gradient-to-tr from-cozy-amber/20 to-cozy-lavender/20 text-cozy-amber dark:text-cozy-amber-light scale-105 shadow-sm' 
-                    : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-100 dark:hover:text-cozy-cream-50'
+                    ? 'bg-gradient-to-tr from-booklyn-amber/20 to-booklyn-lavender/20 text-booklyn-amber dark:text-booklyn-amber-light scale-105 shadow-sm' 
+                    : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-100 dark:hover:text-booklyn-cream-50'
                 }`}>
                   <Icon className="w-5 h-5" />
+                  {!user && isRestricted && (
+                    <span className="absolute top-1.5 right-1.5 w-3 h-3 bg-booklyn-night-300/80 dark:bg-booklyn-night-400/80 border border-white/20 rounded-full flex items-center justify-center shadow-sm">
+                      <Lock className="w-1.5 h-1.5 text-booklyn-amber" />
+                    </span>
+                  )}
                 </div>
                 {active && (
                   <motion.div 
                     layoutId="active-dot"
-                    className="absolute bottom-1.5 w-1.5 h-1.5 bg-cozy-amber rounded-full shadow shadow-cozy-amber/50" 
+                    className="absolute bottom-1.5 w-1.5 h-1.5 bg-booklyn-amber rounded-full shadow shadow-booklyn-amber/50" 
                     transition={{ type: "spring", stiffness: 350, damping: 25 }}
                   />
                 )}

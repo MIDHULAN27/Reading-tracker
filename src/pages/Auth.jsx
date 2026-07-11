@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { dbService } from '../services/db';
 import { 
@@ -36,6 +36,7 @@ export default function Auth() {
   const [activeQuoteIndex, setActiveQuoteIndex] = useState(0);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { 
     signIn, signUp, signInWithGoogle, resetPassword, 
     guestLogin, user, error, loading, clearError,
@@ -100,19 +101,34 @@ export default function Auth() {
     return () => clearInterval(timer);
   }, []);
 
-  // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
+      const redirect = localStorage.getItem("redirectAfterLogin");
+      const destination = redirect || "/";
+      const fromPath = location.state?.from;
+      const isPush = location.state?.isPush;
+
+      const performRedirect = () => {
+        localStorage.removeItem("redirectAfterLogin");
+        if (isPush && fromPath === destination) {
+          navigate(-1);
+        } else {
+          navigate(destination, { replace: true });
+        }
+      };
+      
       if (successMessage) {
-        const timer = setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 1500);
+        console.log("Login success");
+        console.log("Redirecting to:", destination);
+        const timer = setTimeout(performRedirect, 1500);
         return () => clearTimeout(timer);
       } else {
-        navigate('/', { replace: true });
+        console.log("Login success");
+        console.log("Redirecting to:", destination);
+        performRedirect();
       }
     }
-  }, [user, navigate, successMessage]);
+  }, [user, navigate, successMessage, location.state]);
 
   useEffect(() => {
     // Clear any store errors when switching forms
@@ -165,7 +181,8 @@ export default function Auth() {
         }
       }
     } catch (err) {
-      // Error is caught and set in the auth store
+      // Error is caught and displayed by the auth store's error state via toast
+      console.error('[Booklyn Auth Page] Form submission error:', err.message);
     }
   };
 
@@ -195,23 +212,20 @@ export default function Auth() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      // Error is managed inside the store
+      // Error is managed inside the store; log for diagnostics
+      console.error('[Booklyn Auth Page] Google sign-in error:', err.message);
     }
   };
 
   const handleGuestEntry = async () => {
-    try {
-      await guestLogin();
-    } catch (err) {
-      // Managed inside store
-    }
+    navigate('/');
   };
 
   return (
-    <div className="min-h-screen flex bg-cozy-cream-50 dark:bg-cozy-night-300 text-cozy-night-100 dark:text-cozy-cream-50 overflow-hidden font-sans transition-colors duration-500 relative">
+    <div className="min-h-screen flex bg-booklyn-cream-50 dark:bg-booklyn-night-300 text-booklyn-night-100 dark:text-booklyn-cream-50 overflow-hidden font-sans transition-colors duration-500 relative">
       
       {/* LEFT GALLERY PANEL - Immersive Visual Branding (Desktop only) */}
-      <div className="hidden lg:flex lg:w-3/5 relative flex-col justify-between p-12 bg-gradient-to-tr from-cozy-cream-100 to-cozy-cream-200 dark:from-cozy-night-200 dark:to-cozy-night-300 overflow-hidden border-r border-cozy-cream-300/40 dark:border-white/5 select-none">
+      <div className="hidden lg:flex lg:w-3/5 relative flex-col justify-between p-12 bg-gradient-to-tr from-booklyn-cream-100 to-booklyn-cream-200 dark:from-booklyn-night-200 dark:to-booklyn-night-300 overflow-hidden border-r border-booklyn-cream-300/40 dark:border-white/5 select-none">
         
         {/* Glowing background shapes */}
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full ambient-glow-1 animate-float pointer-events-none" />
@@ -232,14 +246,14 @@ export default function Auth() {
           {/* Floating book showcase */}
           <div className="relative w-80 h-48 mb-12 flex justify-center items-center">
             {/* Ambient gold glow under books */}
-            <div className="absolute inset-0 bg-cozy-amber/5 blur-3xl rounded-full" />
+            <div className="absolute inset-0 bg-booklyn-amber/5 blur-3xl rounded-full" />
             
             {/* Book Card 1 */}
             <motion.div 
               initial={{ rotate: -15, x: -50, y: 10, opacity: 0 }}
               animate={{ rotate: -12, x: -45, y: 0, opacity: 1 }}
               transition={{ duration: 1, delay: 0.2 }}
-              className="absolute w-28 h-40 rounded-xl bg-gradient-to-tr from-orange-800 to-cozy-amber text-white p-3 shadow-2xl flex flex-col justify-between border border-white/10 hover:scale-105 transition-all"
+              className="absolute w-28 h-40 rounded-xl bg-gradient-to-tr from-orange-800 to-booklyn-amber text-white p-3 shadow-2xl flex flex-col justify-between border border-white/10 hover:scale-105 transition-all"
             >
               <div className="text-[9px] font-bold uppercase tracking-wider opacity-60">Vol. 01</div>
               <div className="font-serif font-bold text-xs leading-tight">The Art of Reading</div>
@@ -258,14 +272,14 @@ export default function Auth() {
                 delay: 0.4,
                 y: { duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }
               }}
-              className="absolute w-32 h-44 rounded-xl bg-gradient-to-tr from-cozy-night-100 to-indigo-950 dark:from-indigo-950 dark:to-cozy-night-400 text-white p-4 shadow-2xl flex flex-col justify-between border border-white/15 z-20"
+              className="absolute w-32 h-44 rounded-xl bg-gradient-to-tr from-booklyn-night-100 to-indigo-950 dark:from-indigo-950 dark:to-booklyn-night-400 text-white p-4 shadow-2xl flex flex-col justify-between border border-white/15 z-20"
             >
               <div className="flex justify-between items-start">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-cozy-amber">Featured</span>
-                <BookOpenCheck className="w-4 h-4 text-cozy-amber" />
+                <span className="text-[9px] font-bold uppercase tracking-wider text-booklyn-amber">Featured</span>
+                <BookOpenCheck className="w-4 h-4 text-booklyn-amber" />
               </div>
               <div className="font-serif font-bold text-sm leading-snug">Curating Your Mind's Shelves</div>
-              <div className="flex justify-between items-center text-[8px] font-bold pt-2 border-t border-white/10 text-cozy-cream-200">
+              <div className="flex justify-between items-center text-[8px] font-bold pt-2 border-t border-white/10 text-booklyn-cream-200">
                 <span>BOOKLYN ARCHIVES</span>
                 <span>2026</span>
               </div>
@@ -276,7 +290,7 @@ export default function Auth() {
               initial={{ rotate: 15, x: 50, y: 15, opacity: 0 }}
               animate={{ rotate: 12, x: 45, y: 0, opacity: 1 }}
               transition={{ duration: 1, delay: 0.6 }}
-              className="absolute w-28 h-40 rounded-xl bg-gradient-to-tr from-indigo-900 to-cozy-lavender text-white p-3 shadow-2xl flex flex-col justify-between border border-white/10 hover:scale-105 transition-all"
+              className="absolute w-28 h-40 rounded-xl bg-gradient-to-tr from-indigo-900 to-booklyn-lavender text-white p-3 shadow-2xl flex flex-col justify-between border border-white/10 hover:scale-105 transition-all"
             >
               <div className="text-[9px] font-bold uppercase tracking-wider opacity-60">Vol. 03</div>
               <div className="font-serif font-bold text-xs leading-tight">Habits & Quiet Corners</div>
@@ -298,14 +312,14 @@ export default function Auth() {
                 transition={{ duration: 0.6 }}
                 className="space-y-4"
               >
-                <p className="font-serif text-xl md:text-2xl italic leading-relaxed text-cozy-night-300 dark:text-cozy-cream-100">
+                <p className="font-serif text-xl md:text-2xl italic leading-relaxed text-booklyn-night-300 dark:text-booklyn-cream-100">
                   {quotes[activeQuoteIndex].text}
                 </p>
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-cozy-amber">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-booklyn-amber">
                     {quotes[activeQuoteIndex].author}
                   </h4>
-                  <span className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold italic">
+                  <span className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold italic">
                     in {quotes[activeQuoteIndex].book}
                   </span>
                 </div>
@@ -315,7 +329,7 @@ export default function Auth() {
         </div>
 
         {/* Footer Brand Details */}
-        <div className="relative z-10 text-[10px] uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/30 font-bold flex justify-between items-center">
+        <div className="relative z-10 text-[10px] uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 font-bold flex justify-between items-center">
           <span>Booklyn © 2026</span>
           <span className="flex items-center gap-1.5">
             <Database className="w-3 h-3 text-green-500" />
@@ -325,7 +339,7 @@ export default function Auth() {
       </div>
 
       {/* RIGHT ACTION PANEL - Forms, Validation & Social entry */}
-      <div className="w-full lg:w-2/5 flex flex-col justify-center items-center px-6 py-12 relative z-10 bg-white/20 dark:bg-cozy-night-300/30 backdrop-blur-md">
+      <div className="w-full lg:w-2/5 flex flex-col justify-center items-center px-6 py-12 relative z-10 bg-white/20 dark:bg-booklyn-night-300/30 backdrop-blur-md">
         
         {/* Responsive glowing ambient sphere on mobile */}
         <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full ambient-glow-1 pointer-events-none lg:hidden" />
@@ -338,7 +352,7 @@ export default function Auth() {
             alt="Booklyn Brand Logo"
             className="h-14 w-auto object-contain transition-all duration-300 mb-4 filter drop-shadow-[0_0_10px_rgba(255,184,77,0.3)] dark:drop-shadow-[0_0_16px_rgba(255,184,77,0.6)] will-change-transform transform-gpu"
           />
-          <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+          <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
             Your ultimate sanctuary for digital reading journals.
           </p>
         </div>
@@ -351,13 +365,13 @@ export default function Auth() {
           className="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 border border-white/20 dark:border-white/10 shadow-2xl relative overflow-hidden"
         >
           {/* Tab Selector */}
-          <div className="flex border-b border-cozy-cream-300/50 dark:border-cozy-night-100/10 mb-6">
+          <div className="flex border-b border-booklyn-cream-300/50 dark:border-booklyn-night-100/10 mb-6">
             <button
               onClick={() => setIsLogin(true)}
               className={`flex-1 pb-3 text-center text-xs sm:text-sm font-semibold tracking-wide border-b-2 transition-all duration-300 ${
                 isLogin 
-                  ? 'border-cozy-amber text-cozy-amber dark:text-cozy-amber-light font-bold' 
-                  : 'border-transparent text-cozy-night-100/40 dark:text-cozy-cream-200/40 hover:text-cozy-night-100 dark:hover:text-cozy-cream-200'
+                  ? 'border-booklyn-amber text-booklyn-amber dark:text-booklyn-amber-light font-bold' 
+                  : 'border-transparent text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-100 dark:hover:text-booklyn-cream-200'
               }`}
             >
               Sign In
@@ -366,8 +380,8 @@ export default function Auth() {
               onClick={() => setIsLogin(false)}
               className={`flex-1 pb-3 text-center text-xs sm:text-sm font-semibold tracking-wide border-b-2 transition-all duration-300 ${
                 !isLogin 
-                  ? 'border-cozy-amber text-cozy-amber dark:text-cozy-amber-light font-bold' 
-                  : 'border-transparent text-cozy-night-100/40 dark:text-cozy-cream-200/40 hover:text-cozy-night-100 dark:hover:text-cozy-cream-200'
+                  ? 'border-booklyn-amber text-booklyn-amber dark:text-booklyn-amber-light font-bold' 
+                  : 'border-transparent text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-100 dark:hover:text-booklyn-cream-200'
               }`}
             >
               Create Account
@@ -388,11 +402,11 @@ export default function Auth() {
                 {/* Full name input (signup only) */}
                 {!isLogin && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-cozy-night-100/60 dark:text-cozy-cream-200/50 pl-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 pl-1">
                       Full Name
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/30" />
+                      <User className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/30" />
                       <input
                         type="text"
                         required
@@ -407,11 +421,11 @@ export default function Auth() {
 
                 {/* Email input */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-cozy-night-100/60 dark:text-cozy-cream-200/50 pl-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 pl-1">
                     Email Address
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/30" />
+                    <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/30" />
                     <input
                       type="email"
                       required
@@ -426,21 +440,21 @@ export default function Auth() {
                 {/* Password input */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
                       Password
                     </label>
                     {isLogin && (
                       <button
                         type="button"
                         onClick={() => setShowForgotModal(true)}
-                        className="text-[10px] font-bold text-cozy-amber dark:text-cozy-amber-light hover:underline bg-transparent border-none cursor-pointer focus:outline-none"
+                        className="text-[10px] font-bold text-booklyn-amber dark:text-booklyn-amber-light hover:underline bg-transparent border-none cursor-pointer focus:outline-none"
                       >
                         Forgot Password?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/30" />
+                    <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/30" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
@@ -453,7 +467,7 @@ export default function Auth() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-cozy-night-100/40 dark:text-cozy-cream-200/35 hover:text-cozy-night-100 dark:hover:text-white transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 hover:text-booklyn-night-100 dark:hover:text-white transition-colors"
                       title={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -470,18 +484,18 @@ export default function Auth() {
                 animate={{ opacity: 1, height: 'auto' }}
                 className="p-3 rounded-2xl bg-white/20 dark:bg-black/10 border border-white/10 text-[10px] font-semibold space-y-1.5"
               >
-                <p className="text-cozy-night-100/50 dark:text-cozy-cream-200/40 uppercase tracking-wider text-[8px] font-bold">Password strength checkpoints:</p>
+                <p className="text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 uppercase tracking-wider text-[8px] font-bold">Password strength checkpoints:</p>
                 <div className="flex items-center gap-2">
                   <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border ${hasMinLength ? 'bg-green-500/20 border-green-500 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500/60'}`}>
                     <Check className="w-2.5 h-2.5" />
                   </div>
-                  <span className={hasMinLength ? 'text-green-600 dark:text-green-400 font-bold' : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40'}>At least 6 characters</span>
+                  <span className={hasMinLength ? 'text-green-600 dark:text-green-400 font-bold' : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40'}>At least 6 characters</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border ${hasNumberOrSpecial ? 'bg-green-500/20 border-green-500 text-green-500' : 'bg-red-500/10 border-red-500/30 text-red-500/60'}`}>
                     <Check className="w-2.5 h-2.5" />
                   </div>
-                  <span className={hasNumberOrSpecial ? 'text-green-600 dark:text-green-400 font-bold' : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40'}>Contains a number or special char</span>
+                  <span className={hasNumberOrSpecial ? 'text-green-600 dark:text-green-400 font-bold' : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40'}>Contains a number or special char</span>
                 </div>
               </motion.div>
             )}
@@ -492,7 +506,7 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-semibold text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-cozy-amber/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-semibold text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-booklyn-amber/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -507,9 +521,9 @@ export default function Auth() {
 
           {/* Social Divider */}
           <div className="flex items-center my-6">
-            <div className="flex-1 h-[1px] bg-cozy-cream-300/60 dark:bg-cozy-night-100/10" />
-            <span className="px-3.5 text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/30 font-bold tracking-widest uppercase">Or Sync with</span>
-            <div className="flex-1 h-[1px] bg-cozy-cream-300/60 dark:bg-cozy-night-100/10" />
+            <div className="flex-1 h-[1px] bg-booklyn-cream-300/60 dark:bg-booklyn-night-100/10" />
+            <span className="px-3.5 text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 font-bold tracking-widest uppercase">Or Sync with</span>
+            <div className="flex-1 h-[1px] bg-booklyn-cream-300/60 dark:bg-booklyn-night-100/10" />
           </div>
 
           {/* Google SSO Login Button */}
@@ -518,7 +532,7 @@ export default function Auth() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-white/20 dark:bg-white/5 border border-cozy-cream-300 dark:border-white/10 text-cozy-night-300 dark:text-cozy-cream-100 hover:bg-white/35 dark:hover:bg-white/10 active:scale-[0.98] transition-all duration-200 flex items-center justify-center font-bold text-xs uppercase tracking-wider shadow-sm"
+              className="w-full py-3 px-4 rounded-xl bg-white/20 dark:bg-white/5 border border-booklyn-cream-300 dark:border-white/10 text-booklyn-night-300 dark:text-booklyn-cream-100 hover:bg-white/35 dark:hover:bg-white/10 active:scale-[0.98] transition-all duration-200 flex items-center justify-center font-bold text-xs uppercase tracking-wider shadow-sm"
             >
               <svg className="w-4.5 h-4.5 mr-2.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -534,19 +548,19 @@ export default function Auth() {
               type="button"
               onClick={handleGuestEntry}
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-tr from-cozy-amber/5 to-cozy-lavender/5 hover:from-cozy-amber/10 hover:to-cozy-lavender/10 border border-cozy-amber/20 dark:border-white/10 text-cozy-night-300 dark:text-cozy-cream-100 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2.5 font-bold text-xs uppercase tracking-wider"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-tr from-booklyn-amber/5 to-booklyn-lavender/5 hover:from-booklyn-amber/10 hover:to-booklyn-lavender/10 border border-booklyn-amber/20 dark:border-white/10 text-booklyn-night-300 dark:text-booklyn-cream-100 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2.5 font-bold text-xs uppercase tracking-wider"
             >
-              <Sparkles className="w-4.5 h-4.5 text-cozy-amber flex-shrink-0" />
+              <Sparkles className="w-4.5 h-4.5 text-booklyn-amber flex-shrink-0" />
               <span>Explore as Guest</span>
             </button>
           </div>
         </motion.div>
 
         {/* Diagnostic Connection info */}
-        <div className="text-center mt-6 text-[9px] uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/30 font-bold flex items-center gap-2 relative z-10 select-none">
+        <div className="text-center mt-6 text-[9px] uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 font-bold flex items-center gap-2 relative z-10 select-none">
           <span>Active Connection: </span>
           <span className={`font-bold py-0.5 px-2 rounded-lg border ${getStatusColor(dbStatus.status)}`}>
-            {dbStatus.status}
+            {dbStatus.status === 'Pending Validation' ? 'Validating...' : dbStatus.status}
           </span>
         </div>
       </div>
@@ -570,37 +584,37 @@ export default function Auth() {
               className="glass-panel rounded-3xl p-6 sm:p-8 max-w-md w-full border border-white/20 dark:border-white/10 shadow-2xl relative z-10 overflow-hidden text-xs"
             >
               {/* Glowing header circle */}
-              <div className="absolute top-[-50px] right-[-50px] w-36 h-36 rounded-full bg-cozy-amber/10 blur-xl pointer-events-none" />
+              <div className="absolute top-[-50px] right-[-50px] w-36 h-36 rounded-full bg-booklyn-amber/10 blur-xl pointer-events-none" />
 
               {/* Title Section */}
-              <div className="flex items-center gap-3 border-b border-cozy-cream-300/50 dark:border-cozy-night-100/10 pb-4 mb-4">
+              <div className="flex items-center gap-3 border-b border-booklyn-cream-300/50 dark:border-booklyn-night-100/10 pb-4 mb-4">
                 <button 
                   onClick={() => setShowForgotModal(false)}
                   disabled={forgotLoading}
-                  className="p-1.5 rounded-lg bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 hover:scale-105 active:scale-95 transition-all text-cozy-night-100 dark:text-cozy-cream-50"
+                  className="p-1.5 rounded-lg bg-white/20 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 hover:scale-105 active:scale-95 transition-all text-booklyn-night-100 dark:text-booklyn-cream-50"
                   title="Return to login"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <div>
-                  <h3 className="font-serif text-base sm:text-lg font-bold text-cozy-night-300 dark:text-white">Recover Password</h3>
-                  <p className="text-[10px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 font-semibold uppercase tracking-wider mt-0.5">Shelves key backup</p>
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-booklyn-night-300 dark:text-white">Recover Password</h3>
+                  <p className="text-[10px] text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 font-semibold uppercase tracking-wider mt-0.5">Shelves key backup</p>
                 </div>
               </div>
 
               {/* Recovery Form */}
               {!forgotSuccess ? (
                 <form onSubmit={handleForgotSubmit} className="space-y-4">
-                  <p className="text-cozy-night-100/70 dark:text-cozy-cream-200/50 leading-relaxed font-medium">
+                  <p className="text-booklyn-night-100/70 dark:text-booklyn-cream-200/50 leading-relaxed font-medium">
                     Please provide the email address registered to your Booklyn library. We will dispatch a recovery email containing a secure link to override your password credentials.
                   </p>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-cozy-night-100/60 dark:text-cozy-cream-200/50 pl-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 pl-1">
                       Email Address
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/30" />
+                      <Mail className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/30" />
                       <input
                         type="email"
                         required
@@ -622,7 +636,7 @@ export default function Auth() {
                   <button
                     type="submit"
                     disabled={forgotLoading}
-                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-semibold text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-cozy-amber/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-semibold text-xs uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-booklyn-amber/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   >
                     {forgotLoading ? (
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -646,7 +660,7 @@ export default function Auth() {
                   
                   <div className="space-y-2">
                     <h4 className="font-serif text-base font-bold text-green-600 dark:text-green-400">Recovery email dispatched!</h4>
-                    <p className="text-cozy-night-100/70 dark:text-cozy-cream-200/50 leading-relaxed font-medium px-2">
+                    <p className="text-booklyn-night-100/70 dark:text-booklyn-cream-200/50 leading-relaxed font-medium px-2">
                       A secure recovery link was dispatched successfully. Open the link to return to your shelves and instantly establish your new password key.
                     </p>
                   </div>
@@ -657,7 +671,7 @@ export default function Auth() {
                       setForgotSuccess(false);
                       setShowForgotModal(false);
                     }}
-                    className="py-2.5 px-6 rounded-xl bg-white/20 dark:bg-white/5 border border-cozy-cream-300 dark:border-white/10 text-cozy-night-300 dark:text-cozy-cream-100 hover:bg-white/35 dark:hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-wider shadow-sm"
+                    className="py-2.5 px-6 rounded-xl bg-white/20 dark:bg-white/5 border border-booklyn-cream-300 dark:border-white/10 text-booklyn-night-300 dark:text-booklyn-cream-100 hover:bg-white/35 dark:hover:bg-white/10 transition-all font-bold text-xs uppercase tracking-wider shadow-sm"
                   >
                     Return to Login
                   </button>
@@ -679,10 +693,10 @@ export default function Auth() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
-              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-amber-500/25 dark:border-amber-500/15 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-cozy-night-300/60"
+              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-amber-500/25 dark:border-amber-500/15 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-booklyn-night-300/60"
             >
               {/* Decorative top colored border/accent */}
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 to-cozy-amber" />
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-500 to-booklyn-amber" />
               
               <div className="flex gap-3">
                 <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 h-fit">
@@ -691,7 +705,7 @@ export default function Auth() {
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white leading-tight">
+                      <h4 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white leading-tight">
                         {dbStatus.status === 'Unconfigured' ? 'Database Unconfigured' : 'Connection Disconnected'}
                       </h4>
                       <p className="text-[9px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mt-0.5">
@@ -700,7 +714,7 @@ export default function Auth() {
                     </div>
                   </div>
                   
-                  <p className="text-[11px] text-cozy-night-100/70 dark:text-cozy-cream-200/60 leading-relaxed font-medium">
+                  <p className="text-[11px] text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 leading-relaxed font-medium">
                     {dbStatus.status === 'Unconfigured' 
                       ? "Booklyn is running in Unconfigured Mode. Supabase environment variables are missing from your .env file."
                       : "Could not establish a connection to your Supabase PostgreSQL database instance. Please check your credentials."}
@@ -708,7 +722,7 @@ export default function Auth() {
 
                   {/* Environment Issues checklist if Unconfigured */}
                   {dbStatus.status === 'Unconfigured' && envIssues && envIssues.length > 0 && (
-                    <div className="py-1 px-2.5 rounded-lg bg-black/5 dark:bg-black/20 text-[9px] font-semibold text-cozy-night-100/60 dark:text-cozy-cream-200/50 space-y-0.5">
+                    <div className="py-1 px-2.5 rounded-lg bg-black/5 dark:bg-black/20 text-[9px] font-semibold text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 space-y-0.5">
                       {envIssues.map((issue, idx) => (
                         <div key={idx} className="flex items-center gap-1.5">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
@@ -723,13 +737,13 @@ export default function Auth() {
                       type="button"
                       onClick={handleRetryConnection}
                       disabled={retryLoading || loading}
-                      className="px-3 py-1.5 rounded-lg bg-cozy-amber hover:bg-cozy-amber-dark text-white font-bold text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-cozy-amber/20"
+                      className="px-3 py-1.5 rounded-lg bg-booklyn-amber hover:bg-booklyn-amber-dark text-white font-bold text-[10px] uppercase tracking-wider hover:brightness-110 active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none shadow-sm shadow-booklyn-amber/20"
                     >
                       <RefreshCw className={`w-3 h-3 ${retryLoading ? 'animate-spin' : ''}`} />
                       <span>{retryLoading ? 'Verifying...' : 'Retry Connection'}</span>
                     </button>
                     
-                    <span className="text-[9.5px] text-cozy-night-100/40 dark:text-cozy-cream-200/30 font-bold uppercase tracking-widest animate-pulse">
+                    <span className="text-[9.5px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 font-bold uppercase tracking-widest animate-pulse">
                       Offline Mode Active
                     </span>
                   </div>
@@ -746,7 +760,7 @@ export default function Auth() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-red-500/20 dark:border-red-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-cozy-night-300/60"
+              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-red-500/20 dark:border-red-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-booklyn-night-300/60"
             >
               <div className="absolute top-0 inset-x-0 h-1 bg-red-500" />
               <div className="flex gap-3">
@@ -756,18 +770,18 @@ export default function Auth() {
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white leading-tight">Authentication Error</h4>
+                      <h4 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white leading-tight">Authentication Error</h4>
                       <p className="text-[9px] font-bold uppercase tracking-wider text-red-500 mt-0.5">Operation Failed</p>
                     </div>
                     <button
                       type="button"
                       onClick={clearError}
-                      className="text-cozy-night-100/40 dark:text-cozy-cream-200/30 hover:text-cozy-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                      className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 hover:text-booklyn-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-cozy-night-100/70 dark:text-cozy-cream-200/60 leading-relaxed font-medium">
+                  <p className="text-[11px] text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 leading-relaxed font-medium">
                     {error}
                   </p>
                 </div>
@@ -783,7 +797,7 @@ export default function Auth() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-red-500/20 dark:border-red-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-cozy-night-300/60"
+              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-red-500/20 dark:border-red-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-booklyn-night-300/60"
             >
               <div className="absolute top-0 inset-x-0 h-1 bg-red-500" />
               <div className="flex gap-3">
@@ -793,18 +807,18 @@ export default function Auth() {
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white leading-tight">Validation Alert</h4>
+                      <h4 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white leading-tight">Validation Alert</h4>
                       <p className="text-[9px] font-bold uppercase tracking-wider text-red-500 mt-0.5">Input Check Failed</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setValidationError('')}
-                      className="text-cozy-night-100/40 dark:text-cozy-cream-200/30 hover:text-cozy-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                      className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 hover:text-booklyn-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-cozy-night-100/70 dark:text-cozy-cream-200/60 leading-relaxed font-medium">
+                  <p className="text-[11px] text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 leading-relaxed font-medium">
                     {validationError}
                   </p>
                 </div>
@@ -820,7 +834,7 @@ export default function Auth() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-green-500/20 dark:border-green-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-cozy-night-300/60"
+              className="pointer-events-auto w-full p-4 rounded-2xl glass-panel border border-green-500/20 dark:border-green-500/10 shadow-2xl relative overflow-hidden backdrop-blur-xl bg-white/60 dark:bg-booklyn-night-300/60"
             >
               <div className="absolute top-0 inset-x-0 h-1 bg-green-500" />
               <div className="flex gap-3">
@@ -830,18 +844,18 @@ export default function Auth() {
                 <div className="flex-1 space-y-1">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-serif text-sm font-bold text-cozy-night-300 dark:text-white leading-tight">Success</h4>
+                      <h4 className="font-serif text-sm font-bold text-booklyn-night-300 dark:text-white leading-tight">Success</h4>
                       <p className="text-[9px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400 mt-0.5 font-sans">Operation Completed</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSuccessMessage('')}
-                      className="text-cozy-night-100/40 dark:text-cozy-cream-200/30 hover:text-cozy-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                      className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/30 hover:text-booklyn-night-100 dark:hover:text-white p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <p className="text-[11px] text-cozy-night-100/70 dark:text-cozy-cream-200/60 leading-relaxed font-medium">
+                  <p className="text-[11px] text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 leading-relaxed font-medium">
                     {successMessage}
                   </p>
                 </div>

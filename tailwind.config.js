@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        cozy: {
+        booklyn: {
           // Warm book cream light mode colors
           cream: {
             50: '#fdfbf7',

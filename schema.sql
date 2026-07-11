@@ -1,5 +1,5 @@
 -- =======================================================
--- COZY READS - POSTGRESQL & SUPABASE DATABASE SCHEMA
+-- BOOKLYN READS - POSTGRESQL & SUPABASE DATABASE SCHEMA
 -- =======================================================
 
 -- Enable UUID extension
@@ -66,7 +66,10 @@ create table public.user_library (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
   book_id uuid not null references public.books(id) on delete cascade,
-  status text not null check (status in ('to_read', 'reading', 'completed')) default 'to_read',
+  status text not null check (status in ('to_read', 'reading', 'currently_reading', 'completed', 'dropped')) default 'to_read',
+  title text,
+  author text,
+  cover_url text,
   progress_percentage numeric not null default 0.0,
   current_page integer not null default 0,
   is_favorite boolean not null default false,
@@ -76,6 +79,7 @@ create table public.user_library (
   has_pdf boolean not null default false,
   started_at timestamptz,
   completed_at timestamptz,
+  created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null,
   unique (user_id, book_id)
 );

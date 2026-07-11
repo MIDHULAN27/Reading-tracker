@@ -7,6 +7,8 @@ import useBooks from '../hooks/useBooks';
 import usePapers from '../hooks/usePapers';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { usePaperStore } from '../store/usePaperStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useGuestGuard } from '../hooks/useGuestGuard';
 import BookDetailSlideOver from '../components/BookDetailSlideOver';
 import BookCard from '../components/BookCard';
 import { 
@@ -22,6 +24,8 @@ const PAPERS_HOT_SEARCHES = ['Attention is all you need', 'Deep learning', 'Quan
 
 export default function Discover() {
   const navigate = useNavigate();
+  const guard = useGuestGuard();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('books'); // 'books' or 'papers'
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -139,12 +143,12 @@ export default function Discover() {
 
   // Load initial settings, recent searches, trending books, and curated recommendations
   useEffect(() => {
-    const cachedSearches = localStorage.getItem('cozy_recent_searches');
+    const cachedSearches = localStorage.getItem('booklyn_recent_searches');
     if (cachedSearches) {
       setRecentSearches(JSON.parse(cachedSearches));
     }
 
-    const cachedPaperSearches = localStorage.getItem('cozy_recent_paper_searches');
+    const cachedPaperSearches = localStorage.getItem('booklyn_recent_paper_searches');
     if (cachedPaperSearches) {
       setRecentPaperSearches(JSON.parse(cachedPaperSearches));
     }
@@ -194,9 +198,11 @@ export default function Discover() {
 
     loadCategories();
 
-    // Fetch saved papers
-    fetchSavedPapers();
-  }, [fetchTrending, fetchRecommendedClassics, fetchPopular, fetchSavedPapers]);
+    // Fetch saved papers if authenticated
+    if (user) {
+      fetchSavedPapers();
+    }
+  }, [fetchTrending, fetchRecommendedClassics, fetchPopular, fetchSavedPapers, user]);
 
   // Reset page, results, and query when switching tabs to avoid UI flashes
   useEffect(() => {
@@ -329,14 +335,14 @@ export default function Discover() {
       setRecentSearches(prev => {
         const filtered = prev.filter(t => t.toLowerCase() !== cleanTerm.toLowerCase());
         const updated = [cleanTerm, ...filtered].slice(0, 8);
-        localStorage.setItem('cozy_recent_searches', JSON.stringify(updated));
+        localStorage.setItem('booklyn_recent_searches', JSON.stringify(updated));
         return updated;
       });
     } else {
       setRecentPaperSearches(prev => {
         const filtered = prev.filter(t => t.toLowerCase() !== cleanTerm.toLowerCase());
         const updated = [cleanTerm, ...filtered].slice(0, 8);
-        localStorage.setItem('cozy_recent_paper_searches', JSON.stringify(updated));
+        localStorage.setItem('booklyn_recent_paper_searches', JSON.stringify(updated));
         return updated;
       });
     }
@@ -344,10 +350,10 @@ export default function Discover() {
 
   const handleClearRecent = () => {
     if (activeTab === 'books') {
-      localStorage.removeItem('cozy_recent_searches');
+      localStorage.removeItem('booklyn_recent_searches');
       setRecentSearches([]);
     } else {
-      localStorage.removeItem('cozy_recent_paper_searches');
+      localStorage.removeItem('booklyn_recent_paper_searches');
       setRecentPaperSearches([]);
     }
   };
@@ -363,9 +369,16 @@ export default function Discover() {
 
   // Safe Add/Move to shelf handler
   const handleShelveBook = async (book, status) => {
+    if (guard('Shelve Book')) return;
     setActiveShelvingBookId(null);
     try {
-      const existing = books.find(b => b.title.toLowerCase() === book.title.toLowerCase() && b.author.toLowerCase() === book.author.toLowerCase());
+      const existing = books.find(b => {
+        const bTitle = (b.title || '').toLowerCase();
+        const bAuthor = (b.author || '').toLowerCase();
+        const bookTitle = (book.title || '').toLowerCase();
+        const bookAuthor = (book.author || '').toLowerCase();
+        return bTitle === bookTitle && bAuthor === bookAuthor;
+      });
       
       if (existing) {
         // Move existing shelf status
@@ -374,6 +387,11 @@ export default function Discover() {
           progress: status === 'completed' ? existing.pages : existing.progress
         });
       } else {
+        const isFreeBook = book && !(book.googlebooks_id && !book.openlibrary_id && !book.has_pdf);
+        if (!isFreeBook) {
+          alert('Only free edition books (from Project Gutenberg or local uploads) can be added to your library.');
+          return;
+        }
         // Add fresh book data
         const bookData = {
           ...book,
@@ -384,6 +402,7 @@ export default function Discover() {
       }
     } catch (err) {
       console.error('Error shelving book:', err);
+      alert(import.meta.env.DEV ? `Error shelving book: ${err.message}` : 'Failed to add book to library.');
     }
   };
 
@@ -391,6 +410,7 @@ export default function Discover() {
   const handleToggleBookmarkPaper = async (e, paper) => {
     e.stopPropagation();
     e.preventDefault();
+    if (guard('Bookmark Research Paper')) return;
     try {
       const bookmarked = savedPapers.some(p => p.id === paper.id);
       if (bookmarked) {
@@ -518,8 +538,8 @@ export default function Discover() {
   return (
     <div className="space-y-8 min-h-full pb-20 px-1 relative">
       {/* Visual Ambient Glows in Background */}
-      <div className="absolute top-[-20%] right-[-10%] w-[350px] h-[350px] rounded-full bg-cozy-amber/5 blur-3xl pointer-events-none" />
-      <div className="absolute top-[40%] left-[-15%] w-[400px] h-[400px] rounded-full bg-cozy-lavender/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-[-20%] right-[-10%] w-[350px] h-[350px] rounded-full bg-booklyn-amber/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-[40%] left-[-15%] w-[400px] h-[400px] rounded-full bg-booklyn-lavender/5 blur-3xl pointer-events-none" />
 
       {/* Intro Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -527,7 +547,7 @@ export default function Discover() {
           <h1 className="font-serif text-3xl md:text-5xl font-bold tracking-tight mb-2.5">
             Discover
           </h1>
-          <p className="text-sm md:text-base text-cozy-night-100/60 dark:text-cozy-cream-200/50 max-w-2xl leading-relaxed">
+          <p className="text-sm md:text-base text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 max-w-2xl leading-relaxed">
             Search millions of books and research papers from global registries. Direct synchronization maps your collection in real-time.
           </p>
         </div>
@@ -540,8 +560,8 @@ export default function Discover() {
             onClick={() => setActiveTab('books')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${
               activeTab === 'books'
-                ? 'bg-gradient-to-tr from-cozy-amber to-cozy-amber-dark text-white shadow-md shadow-cozy-amber/15 scale-103'
-                : 'text-cozy-night-100/70 dark:text-cozy-cream-200/60 hover:text-cozy-night-100 dark:hover:text-white hover:bg-white/15 dark:hover:bg-white/5'
+                ? 'bg-gradient-to-tr from-booklyn-amber to-booklyn-amber-dark text-white shadow-md shadow-booklyn-amber/15 scale-103'
+                : 'text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 hover:text-booklyn-night-100 dark:hover:text-white hover:bg-white/15 dark:hover:bg-white/5'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -551,8 +571,8 @@ export default function Discover() {
             onClick={() => setActiveTab('papers')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-300 ${
               activeTab === 'papers'
-                ? 'bg-gradient-to-tr from-cozy-amber to-cozy-amber-dark text-white shadow-md shadow-cozy-amber/15 scale-103'
-                : 'text-cozy-night-100/70 dark:text-cozy-cream-200/60 hover:text-cozy-night-100 dark:hover:text-white hover:bg-white/15 dark:hover:bg-white/5'
+                ? 'bg-gradient-to-tr from-booklyn-amber to-booklyn-amber-dark text-white shadow-md shadow-booklyn-amber/15 scale-103'
+                : 'text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 hover:text-booklyn-night-100 dark:hover:text-white hover:bg-white/15 dark:hover:bg-white/5'
             }`}
           >
             <FileText className="w-4 h-4" />
@@ -564,7 +584,7 @@ export default function Discover() {
       {/* Elegant Search Input with Autocomplete Suggestion Dropdown */}
       <div className="relative max-w-2xl z-40 space-y-4">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5.5 h-5.5 text-cozy-night-100/40 dark:text-cozy-cream-200/35" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5.5 h-5.5 text-booklyn-night-100/40 dark:text-booklyn-cream-200/35" />
           <input
             ref={searchInputRef}
             type="text"
@@ -582,14 +602,14 @@ export default function Discover() {
             value={query}
             onFocus={() => setShowSuggestions(true)}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full !pl-12 !pr-12 py-4.5 glass-input rounded-2xl shadow-xl border border-white/20 dark:border-white/10 font-sans focus:ring-2 focus:ring-cozy-amber/20 font-medium text-sm md:text-base text-cozy-night-300 dark:text-white"
+            className="w-full !pl-12 !pr-12 py-4.5 glass-input rounded-2xl shadow-xl border border-white/20 dark:border-white/10 font-sans focus:ring-2 focus:ring-booklyn-amber/20 font-medium text-sm md:text-base text-booklyn-night-300 dark:text-white"
           />
           {query && (
             <button 
               onClick={() => { setQuery(''); setSuggestions([]); }}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 dark:hover:bg-white/5 active:scale-95 transition-all"
             >
-              <X className="w-4 h-4 text-cozy-night-100/60 dark:text-cozy-cream-200/50" />
+              <X className="w-4 h-4 text-booklyn-night-100/60 dark:text-booklyn-cream-200/50" />
             </button>
           )}
         </div>
@@ -608,8 +628,8 @@ export default function Discover() {
                 onClick={() => setSelectedRegistry(reg.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold tracking-wide transition-all duration-300 border ${
                   selectedRegistry === reg.id
-                    ? 'bg-gradient-to-tr from-cozy-amber to-cozy-amber-dark text-white border-cozy-amber shadow-md shadow-cozy-amber/15 scale-102'
-                    : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-cozy-night-100/70 dark:text-cozy-cream-200/60 hover:text-cozy-night-100 dark:hover:text-white hover:bg-white/30 dark:hover:bg-white/10'
+                    ? 'bg-gradient-to-tr from-booklyn-amber to-booklyn-amber-dark text-white border-booklyn-amber shadow-md shadow-booklyn-amber/15 scale-102'
+                    : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 hover:text-booklyn-night-100 dark:hover:text-white hover:bg-white/30 dark:hover:bg-white/10'
                 }`}
               >
                 {reg.label}
@@ -633,21 +653,21 @@ export default function Discover() {
                 className="absolute left-0 right-0 mt-2 p-3.5 glass-overlay rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.45)] border border-white/15 dark:border-white/10 z-[100] overflow-hidden space-y-2.5 max-h-[360px] overflow-y-auto custom-scrollbar pointer-events-auto"
               >
                 <div className="flex justify-between items-center px-1">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40 flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 text-cozy-amber animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-booklyn-amber animate-pulse" />
                     Live suggestions
                   </span>
                   <button 
                     onClick={() => setShowSuggestions(false)}
-                    className="text-[10px] font-semibold text-cozy-amber hover:underline"
+                    className="text-[10px] font-semibold text-booklyn-amber hover:underline"
                   >
                     Dismiss
                   </button>
                 </div>
 
                 {suggestions.length === 0 ? (
-                  <div className="py-4 text-center text-xs text-cozy-night-100/40 dark:text-cozy-cream-200/45 flex items-center justify-center gap-2">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-cozy-amber" />
+                  <div className="py-4 text-center text-xs text-booklyn-night-100/40 dark:text-booklyn-cream-200/45 flex items-center justify-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-booklyn-amber" />
                     <span>
                       {activeTab === 'books' 
                         ? 'Searching book registry indices...' 
@@ -671,7 +691,7 @@ export default function Discover() {
                         }}
                         className="w-full text-left p-2 rounded-xl hover:bg-white/30 dark:hover:bg-white/5 active:scale-[0.99] transition-all flex items-center gap-3 border border-transparent hover:border-white/20 dark:hover:border-white/5"
                       >
-                        <div className="w-8 h-11 bg-cozy-cream-200 dark:bg-cozy-night-100 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <div className="w-8 h-11 bg-booklyn-cream-200 dark:bg-booklyn-night-100 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
                           {activeTab === 'books' ? (
                             item.cover_url ? (
                               <img src={item.cover_url} alt="" className="w-full h-full object-cover" />
@@ -685,12 +705,12 @@ export default function Discover() {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold font-serif truncate text-cozy-night-300 dark:text-white">{item.title}</p>
-                          <p className="text-[10px] text-cozy-night-100/60 dark:text-cozy-cream-200/40 truncate">
+                          <p className="text-xs font-bold font-serif truncate text-booklyn-night-300 dark:text-white">{item.title}</p>
+                          <p className="text-[10px] text-booklyn-night-100/60 dark:text-booklyn-cream-200/40 truncate">
                             by {activeTab === 'books' ? item.author : item.authors?.join(', ')}
                           </p>
                         </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-cozy-amber opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ArrowRight className="w-3.5 h-3.5 text-booklyn-amber opacity-0 group-hover:opacity-100 transition-opacity" />
                       </button>
                     ))}
                   </div>
@@ -714,8 +734,8 @@ export default function Discover() {
             {currentRecentSearches.length > 0 && (
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <p className="text-xs font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-cozy-amber" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-booklyn-amber" />
                     Recently searched
                   </p>
                   <button 
@@ -731,10 +751,10 @@ export default function Discover() {
                     <button
                       key={idx}
                       onClick={() => handleHotSearchClick(term)}
-                      className="px-3.5 py-2 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-medium tracking-wide active:scale-95 transition-all flex items-center gap-1.5 shadow-sm text-cozy-night-200 dark:text-white"
+                      className="px-3.5 py-2 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-medium tracking-wide active:scale-95 transition-all flex items-center gap-1.5 shadow-sm text-booklyn-night-200 dark:text-white"
                     >
                       <span>{term}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-cozy-amber" />
+                      <ArrowRight className="w-3.5 h-3.5 text-booklyn-amber" />
                     </button>
                   ))}
                 </div>
@@ -744,8 +764,8 @@ export default function Discover() {
             {/* Curated Hot/Trending search tags */}
             {currentRecentSearches.length === 0 && (
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40 flex items-center gap-1.5">
-                  <Compass className="w-3.5 h-3.5 text-cozy-amber" />
+                <p className="text-xs font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 flex items-center gap-1.5">
+                  <Compass className="w-3.5 h-3.5 text-booklyn-amber" />
                   Trending Searches
                 </p>
                 <div className="flex flex-wrap gap-2.5">
@@ -753,10 +773,10 @@ export default function Discover() {
                     <button
                       key={term}
                       onClick={() => handleHotSearchClick(term)}
-                      className="px-3.5 py-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-semibold tracking-wide active:scale-95 transition-all flex items-center gap-1.5 shadow-sm text-cozy-night-200 dark:text-white"
+                      className="px-3.5 py-2.5 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-semibold tracking-wide active:scale-95 transition-all flex items-center gap-1.5 shadow-sm text-booklyn-night-200 dark:text-white"
                     >
                       <span>{term}</span>
-                      <ArrowRight className="w-3 h-3 text-cozy-amber" />
+                      <ArrowRight className="w-3 h-3 text-booklyn-amber" />
                     </button>
                   ))}
                 </div>
@@ -768,9 +788,9 @@ export default function Discover() {
                 {Object.entries(cleanCategoriesData).map(([key, category]) => {
                   const getDotColorClass = (k) => {
                     const colors = {
-                      trending: 'bg-cozy-amber animate-pulse',
+                      trending: 'bg-booklyn-amber animate-pulse',
                       free: 'bg-emerald-500',
-                      classics: 'bg-cozy-lavender',
+                      classics: 'bg-booklyn-lavender',
                       fantasy: 'bg-rose-500',
                       scifi: 'bg-indigo-500',
                       mystery: 'bg-zinc-500',
@@ -781,7 +801,7 @@ export default function Discover() {
                       selfHelp: 'bg-teal-500',
                       historical: 'bg-amber-700',
                     };
-                    return colors[k] || 'bg-cozy-amber';
+                    return colors[k] || 'bg-booklyn-amber';
                   };
 
                   return (
@@ -789,10 +809,10 @@ export default function Discover() {
                       <div className="flex justify-between items-center">
                         <h3 
                           onClick={() => handleCategoryTitleClick(category.title, key)}
-                          className="font-serif text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 cursor-pointer hover:text-cozy-amber group transition-all duration-300 select-none"
+                          className="font-serif text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 cursor-pointer hover:text-booklyn-amber group transition-all duration-300 select-none"
                         >
                           <span className={`w-2.5 h-2.5 rounded-full transition-transform duration-300 group-hover:scale-125 ${getDotColorClass(key)}`} />
-                          <span className="border-b border-transparent group-hover:border-cozy-amber transition-all duration-300">
+                          <span className="border-b border-transparent group-hover:border-booklyn-amber transition-all duration-300">
                             {category.title}
                           </span>
                         </h3>
@@ -801,13 +821,13 @@ export default function Discover() {
                             onClick={() => scrollCarousel(key, 'left')}
                             className="p-2 rounded-xl bg-white/35 dark:bg-white/5 border border-white/10 hover:bg-white/50 dark:hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
                           >
-                            <ChevronLeft className="w-4 h-4 text-cozy-night-100/70 dark:text-white" />
+                            <ChevronLeft className="w-4 h-4 text-booklyn-night-100/70 dark:text-white" />
                           </button>
                           <button 
                             onClick={() => scrollCarousel(key, 'right')}
                             className="p-2 rounded-xl bg-white/35 dark:bg-white/5 border border-white/10 hover:bg-white/50 dark:hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
                           >
-                            <ChevronRight className="w-4 h-4 text-cozy-night-100/70 dark:text-white" />
+                            <ChevronRight className="w-4 h-4 text-booklyn-night-100/70 dark:text-white" />
                           </button>
                         </div>
                       </div>
@@ -816,9 +836,9 @@ export default function Discover() {
                         <div className="flex gap-4 overflow-hidden py-2">
                           {Array.from({ length: 6 }).map((_, idx) => (
                             <div key={idx} className="w-[160px] md:w-[190px] flex-shrink-0 space-y-3 animate-pulse">
-                              <div className="aspect-[3/4] bg-cozy-cream-300 dark:bg-cozy-night-100 rounded-2xl w-full animate-pulse" />
-                              <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-11/12 animate-pulse" />
-                              <div className="h-3 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-2/3 animate-pulse" />
+                              <div className="aspect-[3/4] bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded-2xl w-full animate-pulse" />
+                              <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-11/12 animate-pulse" />
+                              <div className="h-3 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-2/3 animate-pulse" />
                             </div>
                           ))}
                         </div>
@@ -849,19 +869,19 @@ export default function Discover() {
               <>
                 {/* DOI Open Access Resolver Widget */}
                 <div className="glass-panel border-white/20 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-cozy-amber/10 to-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-gradient-to-tr from-booklyn-amber/10 to-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
                   
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="p-2 rounded-xl bg-cozy-amber/10 text-cozy-amber">
+                        <span className="p-2 rounded-xl bg-booklyn-amber/10 text-booklyn-amber">
                           <Unlock className="w-5 h-5" />
                         </span>
-                        <h3 className="font-serif text-xl md:text-2xl font-bold tracking-tight text-cozy-night-300 dark:text-white">
+                        <h3 className="font-serif text-xl md:text-2xl font-bold tracking-tight text-booklyn-night-300 dark:text-white">
                           DOI Open-Access Resolver
                         </h3>
                       </div>
-                      <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50 max-w-lg leading-relaxed">
+                      <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 max-w-lg leading-relaxed">
                         Instantly resolve and view scholarly publications. We coordinate queries through Unpaywall and Semantic Scholar registries to safely locate open-access editions.
                       </p>
                     </div>
@@ -870,19 +890,19 @@ export default function Discover() {
                   {/* Resolution Input field */}
                   <form onSubmit={handleResolveDoi} className="flex flex-col sm:flex-row gap-3">
                     <div className="relative flex-1">
-                      <FileText className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-cozy-night-100/40 dark:text-cozy-cream-200/35" />
+                      <FileText className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4.5 h-4.5 text-booklyn-night-100/40 dark:text-booklyn-cream-200/35" />
                       <input
                         type="text"
                         placeholder="Enter publication DOI (e.g. 10.1145/3065386 or https://doi.org/10.1109/...)"
                         value={doiQuery}
                         onChange={(e) => setDoiQuery(e.target.value)}
-                        className="w-full !pl-11 !pr-4 py-3.5 glass-input rounded-2xl border border-white/25 dark:border-white/10 font-sans focus:ring-2 focus:ring-cozy-amber/20 font-medium text-xs md:text-sm text-cozy-night-300 dark:text-white"
+                        className="w-full !pl-11 !pr-4 py-3.5 glass-input rounded-2xl border border-white/25 dark:border-white/10 font-sans focus:ring-2 focus:ring-booklyn-amber/20 font-medium text-xs md:text-sm text-booklyn-night-300 dark:text-white"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={resolvingDoi}
-                      className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:brightness-105 active:scale-97 shadow-lg shadow-cozy-amber/15 disabled:opacity-50"
+                      className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:brightness-105 active:scale-97 shadow-lg shadow-booklyn-amber/15 disabled:opacity-50"
                     >
                       {resolvingDoi ? (
                         <>
@@ -900,7 +920,7 @@ export default function Discover() {
 
                   {/* Quick example suggestions */}
                   <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-cozy-night-100/45 dark:text-cozy-cream-200/40">Try examples:</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-booklyn-night-100/45 dark:text-booklyn-cream-200/40">Try examples:</span>
                     {[
                       { label: 'Attention Is All You Need', doi: '10.1145/3065386' },
                       { label: 'BERT Pre-training', doi: '10.48550/arxiv.1810.04805' },
@@ -912,7 +932,7 @@ export default function Discover() {
                           setDoiQuery(ex.doi);
                           handleResolveDoi(e, ex.doi);
                         }}
-                        className="px-2.5 py-1.5 rounded-xl bg-white/25 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-[10px] font-medium tracking-wide active:scale-95 transition-all text-cozy-night-200 dark:text-white"
+                        className="px-2.5 py-1.5 rounded-xl bg-white/25 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-[10px] font-medium tracking-wide active:scale-95 transition-all text-booklyn-night-200 dark:text-white"
                       >
                         {ex.label}
                       </button>
@@ -950,28 +970,28 @@ export default function Discover() {
                               }`}>
                                 {doiResult.is_oa ? `🔓 Open Access (${doiResult.oa_status})` : '🔒 Restricted Access'}
                               </span>
-                              <span className="px-2 py-0.5 rounded-md bg-white/30 dark:bg-white/5 border border-white/15 text-[8px] font-bold uppercase tracking-wider text-cozy-night-100/40 dark:text-cozy-cream-200/40">
+                              <span className="px-2 py-0.5 rounded-md bg-white/30 dark:bg-white/5 border border-white/15 text-[8px] font-bold uppercase tracking-wider text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">
                                 {doiResult.source}
                               </span>
                             </div>
-                            <h4 className="font-serif font-bold text-base leading-snug tracking-tight text-cozy-night-300 dark:text-white">
+                            <h4 className="font-serif font-bold text-base leading-snug tracking-tight text-booklyn-night-300 dark:text-white">
                               {doiResult.title}
                             </h4>
-                            <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40 font-medium">
+                            <p className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 font-medium">
                               by {doiResult.authors.join(', ')}
                             </p>
                           </div>
-                          <span className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-bold uppercase tracking-widest font-sans">
+                          <span className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-bold uppercase tracking-widest font-sans">
                             {doiResult.year}
                           </span>
                         </div>
 
-                        <p className="text-xs leading-relaxed text-cozy-night-100/70 dark:text-cozy-cream-200/60 pl-3 border-l-2 border-cozy-amber/35">
+                        <p className="text-xs leading-relaxed text-booklyn-night-100/70 dark:text-booklyn-cream-200/60 pl-3 border-l-2 border-booklyn-amber/35">
                           {doiResult.abstract}
                         </p>
 
-                        <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-cozy-cream-300/30 dark:border-cozy-night-100/10">
-                          <div className="text-[10px] text-cozy-night-100/45 dark:text-cozy-cream-200/40 font-semibold uppercase tracking-wider">
+                        <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-booklyn-cream-300/30 dark:border-booklyn-night-100/10">
+                          <div className="text-[10px] text-booklyn-night-100/45 dark:text-booklyn-cream-200/40 font-semibold uppercase tracking-wider">
                             {doiResult.journal}
                           </div>
 
@@ -981,7 +1001,7 @@ export default function Discover() {
                               className={`p-2 rounded-xl border transition-all active:scale-95 ${
                                 savedPapers.some(p => p.id === doiResult.id)
                                   ? 'bg-green-500/10 border-green-500/20 text-green-500 shadow-sm'
-                                  : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-cozy-night-100 dark:text-white hover:bg-white/35 dark:hover:bg-white/10'
+                                  : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-booklyn-night-100 dark:text-white hover:bg-white/35 dark:hover:bg-white/10'
                               }`}
                               title={savedPapers.some(p => p.id === doiResult.id) ? "Saved to Library" : "Bookmark Research Paper"}
                             >
@@ -990,7 +1010,7 @@ export default function Discover() {
 
                             <Link
                               to={`/paper/${doiResult.id}`}
-                              className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 active:scale-95 shadow-md shadow-cozy-amber/10 transition-all"
+                              className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 active:scale-95 shadow-md shadow-booklyn-amber/10 transition-all"
                             >
                               <span>🔓 View Publication</span>
                               <ArrowRight className="w-3.5 h-3.5" />
@@ -1006,7 +1026,7 @@ export default function Discover() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-serif text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-cozy-lavender rounded-full animate-pulse" />
+                      <span className="w-2.5 h-2.5 bg-booklyn-lavender rounded-full animate-pulse" />
                       High-Impact Publications
                     </h3>
                     <div className="flex gap-2">
@@ -1014,13 +1034,13 @@ export default function Discover() {
                         onClick={() => scrollCarousel(papersScrollRef, 'left')}
                         className="p-2 rounded-xl bg-white/35 dark:bg-white/5 border border-white/10 hover:bg-white/50 dark:hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
                       >
-                        <ChevronLeft className="w-4 h-4 text-cozy-night-100/70 dark:text-white" />
+                        <ChevronLeft className="w-4 h-4 text-booklyn-night-100/70 dark:text-white" />
                       </button>
                       <button 
                         onClick={() => scrollCarousel(papersScrollRef, 'right')}
                         className="p-2 rounded-xl bg-white/35 dark:bg-white/5 border border-white/10 hover:bg-white/50 dark:hover:bg-white/10 active:scale-90 transition-all cursor-pointer"
                       >
-                        <ChevronRight className="w-4 h-4 text-cozy-night-100/70 dark:text-white" />
+                        <ChevronRight className="w-4 h-4 text-booklyn-night-100/70 dark:text-white" />
                       </button>
                     </div>
                   </div>
@@ -1029,9 +1049,9 @@ export default function Discover() {
                     <div className="flex gap-4 overflow-hidden py-2">
                       {Array.from({ length: 4 }).map((_, idx) => (
                         <div key={idx} className="w-[280px] md:w-[320px] flex-shrink-0 space-y-3 animate-pulse">
-                          <div className="h-36 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded-2xl w-full" />
-                          <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-11/12" />
-                          <div className="h-3 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-2/3" />
+                          <div className="h-36 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded-2xl w-full" />
+                          <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-11/12" />
+                          <div className="h-3 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-2/3" />
                         </div>
                       ))}
                     </div>
@@ -1065,11 +1085,11 @@ export default function Discover() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-bold uppercase tracking-widest text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-sans">
+                  <p className="text-xs font-bold uppercase tracking-widest text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-sans">
                     Results {currentSearchSource && `• Index: ${currentSearchSource}`}
                   </p>
                   {activeTab === 'books' && filteredResults.length !== bookResults.length && (
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-cozy-amber/15 text-cozy-amber rounded-full">
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-booklyn-amber/15 text-booklyn-amber rounded-full">
                       Filtered ({filteredResults.length} of {bookResults.length})
                     </span>
                   )}
@@ -1080,8 +1100,8 @@ export default function Discover() {
                     onClick={() => setShowFilterDrawer(!showFilterDrawer)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold tracking-wide transition-all ${
                       showFilterDrawer 
-                        ? 'bg-cozy-amber border-cozy-amber text-white shadow-md' 
-                        : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-cozy-night-100/80 dark:text-cozy-cream-100 hover:bg-white/35 dark:hover:bg-white/10'
+                        ? 'bg-booklyn-amber border-booklyn-amber text-white shadow-md' 
+                        : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-booklyn-night-100/80 dark:text-booklyn-cream-100 hover:bg-white/35 dark:hover:bg-white/10'
                     }`}
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1102,8 +1122,8 @@ export default function Discover() {
                     >
                       {/* Genre Pill filters list */}
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 flex items-center gap-1">
-                          <Filter className="w-3 h-3 text-cozy-amber" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 flex items-center gap-1">
+                          <Filter className="w-3 h-3 text-booklyn-amber" />
                           Genre refinement
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -1111,8 +1131,8 @@ export default function Discover() {
                             onClick={() => setSelectedGenre('All')}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                               selectedGenre === 'All'
-                                ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-sm'
-                                : 'bg-white/25 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/10 text-cozy-night-100/70 dark:text-cozy-cream-100'
+                                ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white shadow-sm'
+                                : 'bg-white/25 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/10 text-booklyn-night-100/70 dark:text-booklyn-cream-100'
                             }`}
                           >
                             All Genres
@@ -1123,8 +1143,8 @@ export default function Discover() {
                               onClick={() => setSelectedGenre(genre)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                                 selectedGenre === genre
-                                  ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-sm'
-                                  : 'bg-white/25 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/10 text-cozy-night-100/70 dark:text-cozy-cream-100'
+                                  ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white shadow-sm'
+                                  : 'bg-white/25 dark:bg-white/5 hover:bg-white/35 dark:hover:bg-white/10 text-booklyn-night-100/70 dark:text-booklyn-cream-100'
                               }`}
                             >
                               {genre}
@@ -1136,14 +1156,14 @@ export default function Discover() {
                       {/* Author selection drop list */}
                       {uniqueAuthors.length > 0 && (
                         <div className="space-y-2 max-w-sm">
-                          <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 flex items-center gap-1">
-                            <BookOpen className="w-3.5 h-3.5 text-cozy-amber" />
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5 text-booklyn-amber" />
                             Filter by author
                           </label>
                           <select
                             value={selectedAuthor}
                             onChange={(e) => setSelectedAuthor(e.target.value)}
-                            className="w-full p-2.5 glass-input rounded-xl border border-white/20 dark:border-white/10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-cozy-amber/20 text-cozy-night-200 dark:text-cozy-night-400 bg-white dark:bg-cozy-night-300"
+                            className="w-full p-2.5 glass-input rounded-xl border border-white/20 dark:border-white/10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-booklyn-amber/20 text-booklyn-night-200 dark:text-booklyn-night-400 bg-white dark:bg-booklyn-night-300"
                           >
                             <option value="All">All Authors ({uniqueAuthors.length})</option>
                             {uniqueAuthors.map((author) => (
@@ -1176,8 +1196,8 @@ export default function Discover() {
                     animate={{ opacity: 1, y: 0 }}
                     className="p-4 glass-panel rounded-2xl border border-white/20 dark:border-white/10 flex items-center gap-3 shadow-md max-w-xl"
                   >
-                    <Loader2 className="w-5 h-5 animate-spin text-cozy-amber" />
-                    <span className="text-xs sm:text-sm font-semibold text-cozy-night-200 dark:text-cozy-cream-100">
+                    <Loader2 className="w-5 h-5 animate-spin text-booklyn-amber" />
+                    <span className="text-xs sm:text-sm font-semibold text-booklyn-night-200 dark:text-booklyn-cream-100">
                       {selectedRegistry === 'arxiv'
                         ? 'Connecting to arXiv Open Archive repositories...'
                         : selectedRegistry === 'pmc'
@@ -1192,13 +1212,13 @@ export default function Discover() {
                   {Array.from({ length: 10 }).map((_, idx) => (
                     <div key={idx} className="glass-panel rounded-2xl p-3 border border-white/10 space-y-4 animate-pulse">
                       {activeTab === 'books' ? (
-                        <div className="aspect-[3/4] bg-cozy-cream-300 dark:bg-cozy-night-100 rounded-xl w-full" />
+                        <div className="aspect-[3/4] bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded-xl w-full" />
                       ) : (
-                        <div className="h-32 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded-xl w-full" />
+                        <div className="h-32 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded-xl w-full" />
                       )}
                       <div className="space-y-2">
-                        <div className="h-4 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-11/12" />
-                        <div className="h-3 bg-cozy-cream-300 dark:bg-cozy-night-100 rounded w-2/3" />
+                        <div className="h-4 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-11/12" />
+                        <div className="h-3 bg-booklyn-cream-300 dark:bg-booklyn-night-100 rounded w-2/3" />
                       </div>
                     </div>
                   ))}
@@ -1230,7 +1250,7 @@ export default function Discover() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       whileHover={{ y: -4 }}
-                      className="glass-panel rounded-3xl p-5 border border-white/20 dark:border-white/10 hover:border-cozy-amber/30 hover:shadow-glow-amber transition-all select-none flex flex-col justify-between"
+                      className="glass-panel rounded-3xl p-5 border border-white/20 dark:border-white/10 hover:border-booklyn-amber/30 hover:shadow-glow-amber transition-all select-none flex flex-col justify-between"
                     >
                       <div className="space-y-3">
                         {/* Meta Tags row */}
@@ -1239,14 +1259,14 @@ export default function Discover() {
                             {paper.fields.slice(0, 2).map((field, idx) => (
                               <span 
                                 key={idx} 
-                                className="px-2 py-0.5 rounded-lg bg-cozy-cream-300/50 dark:bg-white/5 border border-white/15 text-[8px] font-bold uppercase tracking-wider text-cozy-night-100/50 dark:text-cozy-cream-200/40"
+                                className="px-2 py-0.5 rounded-lg bg-booklyn-cream-300/50 dark:bg-white/5 border border-white/15 text-[8px] font-bold uppercase tracking-wider text-booklyn-night-100/50 dark:text-booklyn-cream-200/40"
                               >
                                 {field}
                               </span>
                             ))}
                           </div>
                           
-                          <div className="flex items-center gap-1 bg-cozy-amber/10 border border-cozy-amber/20 text-cozy-amber px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wide">
+                          <div className="flex items-center gap-1 bg-booklyn-amber/10 border border-booklyn-amber/20 text-booklyn-amber px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wide">
                             <Quote className="w-2.5 h-2.5" />
                             <span>{paper.citationCount.toLocaleString()} Citations</span>
                           </div>
@@ -1256,24 +1276,24 @@ export default function Discover() {
                         <div className="space-y-1">
                           <Link 
                             to={`/paper/${paper.id}`}
-                            className="font-serif font-bold text-base leading-snug tracking-tight hover:text-cozy-amber dark:hover:text-cozy-amber-light block transition-colors text-cozy-night-300 dark:text-white"
+                            className="font-serif font-bold text-base leading-snug tracking-tight hover:text-booklyn-amber dark:hover:text-booklyn-amber-light block transition-colors text-booklyn-night-300 dark:text-white"
                           >
                             {paper.title}
                           </Link>
-                          <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate leading-relaxed">
+                          <p className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 truncate leading-relaxed">
                             by {paper.authors.join(', ')}
                           </p>
                         </div>
 
                         {/* Abstract Snippet */}
-                        <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50 line-clamp-3 leading-relaxed">
+                        <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 line-clamp-3 leading-relaxed">
                           {paper.abstract}
                         </p>
                       </div>
 
                       {/* Footer Row */}
-                      <div className="flex justify-between items-center mt-5 pt-3 border-t border-cozy-cream-300/20 dark:border-cozy-night-100/10">
-                        <div className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold tracking-wider uppercase flex items-center gap-1.5">
+                      <div className="flex justify-between items-center mt-5 pt-3 border-t border-booklyn-cream-300/20 dark:border-booklyn-night-100/10">
+                        <div className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold tracking-wider uppercase flex items-center gap-1.5">
                           <span className="truncate max-w-[150px]">{paper.journal || 'Academic Research'}</span>
                           <span>•</span>
                           <span>{paper.year}</span>
@@ -1285,7 +1305,7 @@ export default function Discover() {
                             className={`p-2 rounded-xl border transition-all active:scale-95 ${
                               isSaved
                                 ? 'bg-green-500/10 border-green-500/20 text-green-500 shadow-sm'
-                                : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-cozy-night-100 dark:text-white hover:bg-white/35 dark:hover:bg-white/10'
+                                : 'bg-white/20 dark:bg-white/5 border-white/20 dark:border-white/10 text-booklyn-night-100 dark:text-white hover:bg-white/35 dark:hover:bg-white/10'
                             }`}
                             title={isSaved ? "Saved to Library" : "Bookmark Research Paper"}
                           >
@@ -1294,7 +1314,7 @@ export default function Discover() {
 
                           <Link
                             to={`/paper/${paper.id}`}
-                            className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold text-[10px] uppercase tracking-wider hover:brightness-105 active:scale-95 shadow-md shadow-cozy-amber/10 transition-all"
+                            className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold text-[10px] uppercase tracking-wider hover:brightness-105 active:scale-95 shadow-md shadow-booklyn-amber/10 transition-all"
                           >
                             <span>Open Details</span>
                             <ArrowRight className="w-3 h-3" />
@@ -1310,9 +1330,9 @@ export default function Discover() {
             {/* Empty Matches state */}
             {!currentLoading && currentResults.length === 0 && (
               <div className="text-center py-16 space-y-4 glass-panel rounded-3xl border border-white/15 max-w-lg mx-auto shadow-lg">
-                <BookOpen className="w-12 h-12 text-cozy-amber/55 mx-auto animate-bounce-subtle" />
+                <BookOpen className="w-12 h-12 text-booklyn-amber/55 mx-auto animate-bounce-subtle" />
                 <h3 className="font-serif text-xl font-bold">No matches located</h3>
-                <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50 px-8 max-w-sm mx-auto leading-relaxed">
+                <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 px-8 max-w-sm mx-auto leading-relaxed">
                   We couldn't locate matching records for your filters under "{query}". Try clearing search keywords or filters.
                 </p>
                 {activeTab === 'books' && (
@@ -1330,8 +1350,8 @@ export default function Discover() {
             {currentHasMore && currentResults.length > 0 && (
               <div ref={observerRef} className="py-8 flex justify-center items-center w-full">
                 {currentLoadingMore ? (
-                  <div className="flex items-center gap-2 text-xs font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/40">
-                    <Loader2 className="w-4 h-4 animate-spin text-cozy-amber" />
+                  <div className="flex items-center gap-2 text-xs font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">
+                    <Loader2 className="w-4 h-4 animate-spin text-booklyn-amber" />
                     <span>Loading more editions...</span>
                   </div>
                 ) : (
@@ -1366,12 +1386,12 @@ function NetflixCarouselCard({ book, onClick, onShelve, shelvedBooks, activeShel
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
-      className="w-[160px] md:w-[190px] flex-shrink-0 snap-start animate-fade-in glass-panel rounded-2xl p-3 border border-white/20 dark:border-white/10 hover:border-cozy-amber/30 hover:shadow-glow-amber cursor-pointer flex flex-col justify-between h-[280px] md:h-[320px] transition-all relative group select-none"
+      className="w-[160px] md:w-[190px] flex-shrink-0 snap-start animate-fade-in glass-panel rounded-2xl p-3 border border-white/20 dark:border-white/10 hover:border-booklyn-amber/30 hover:shadow-glow-amber cursor-pointer flex flex-col justify-between h-[280px] md:h-[320px] transition-all relative group select-none"
     >
       <ShelfBadge book={book} shelvedBooks={shelvedBooks} />
 
       <div className="space-y-3" onClick={onClick}>
-        <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-md bg-cozy-cream-200 dark:bg-cozy-night-400 w-full">
+        <div className="relative aspect-[3/4] rounded-xl overflow-hidden shadow-md bg-booklyn-cream-200 dark:bg-booklyn-night-400 w-full">
           {book.cover_url ? (
             <img
               src={book.cover_url}
@@ -1391,16 +1411,16 @@ function NetflixCarouselCard({ book, onClick, onShelve, shelvedBooks, activeShel
         </div>
 
         <div className="space-y-0.5">
-          <h4 className="font-serif font-bold text-xs md:text-sm tracking-tight line-clamp-2 leading-snug group-hover:text-cozy-amber dark:group-hover:text-cozy-amber-light transition-colors text-cozy-night-300 dark:text-white">
+          <h4 className="font-serif font-bold text-xs md:text-sm tracking-tight line-clamp-2 leading-snug group-hover:text-booklyn-amber dark:group-hover:text-booklyn-amber-light transition-colors text-booklyn-night-300 dark:text-white">
             {book.title}
           </h4>
-          <p className="text-[10px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate">
+          <p className="text-[10px] text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 truncate">
             {book.author}
           </p>
         </div>
       </div>
 
-      <div className="flex justify-between items-center pt-1.5 border-t border-cozy-cream-300/20 dark:border-cozy-night-100/10 text-[9px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold uppercase tracking-wider relative">
+      <div className="flex justify-between items-center pt-1.5 border-t border-booklyn-cream-300/20 dark:border-booklyn-night-100/10 text-[9px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold uppercase tracking-wider relative">
         <span className="truncate max-w-[65px]">{book.genre || 'Fiction'}</span>
         
         <div className="relative">
@@ -1409,7 +1429,7 @@ function NetflixCarouselCard({ book, onClick, onShelve, shelvedBooks, activeShel
               e.stopPropagation();
               setActiveShelvingId(activeShelvingId === book.id ? null : book.id);
             }}
-            className="p-1 rounded-lg bg-cozy-cream-200 dark:bg-cozy-night-100 hover:bg-cozy-amber/20 dark:hover:bg-cozy-amber/20 active:scale-95 transition-all text-cozy-night-100/80 dark:text-white"
+            className="p-1 rounded-lg bg-booklyn-cream-200 dark:bg-booklyn-night-100 hover:bg-booklyn-amber/20 dark:hover:bg-booklyn-amber/20 active:scale-95 transition-all text-booklyn-night-100/80 dark:text-white"
           >
             <Plus className="w-3 h-3" />
           </button>
@@ -1443,8 +1463,8 @@ function NetflixCarouselCard({ book, onClick, onShelve, shelvedBooks, activeShel
                         }}
                         className={`w-full px-2.5 py-1.5 text-left rounded-lg text-[9px] font-bold tracking-wide flex items-center justify-between border border-transparent transition-all ${
                           isActive
-                            ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold'
-                            : 'hover:bg-white/30 dark:hover:bg-white/5 text-cozy-night-200 dark:text-cozy-cream-100'
+                            ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold'
+                            : 'hover:bg-white/30 dark:hover:bg-white/5 text-booklyn-night-200 dark:text-booklyn-cream-100'
                         }`}
                       >
                         <span>{shelf.label}</span>
@@ -1469,14 +1489,14 @@ function NetflixPaperCard({ paper, isSaved, onToggleBookmark }) {
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 hover:border-cozy-amber/35 shadow-sm hover:shadow-glow-amber cursor-pointer flex flex-col justify-between h-[190px] text-xs select-none"
+      className="glass-panel rounded-2xl p-4 border border-white/20 dark:border-white/10 hover:border-booklyn-amber/35 shadow-sm hover:shadow-glow-amber cursor-pointer flex flex-col justify-between h-[190px] text-xs select-none"
     >
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <span className="px-2 py-0.5 rounded-lg bg-cozy-cream-300 dark:bg-white/5 border border-white/10 text-[8px] font-bold uppercase tracking-wider text-cozy-night-100/40 dark:text-cozy-cream-200/40">
+          <span className="px-2 py-0.5 rounded-lg bg-booklyn-cream-300 dark:bg-white/5 border border-white/10 text-[8px] font-bold uppercase tracking-wider text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">
             {paper.fields[0] || 'Research'}
           </span>
-          <div className="flex items-center gap-0.5 text-cozy-amber font-extrabold text-[8px] uppercase">
+          <div className="flex items-center gap-0.5 text-booklyn-amber font-extrabold text-[8px] uppercase">
             <Quote className="w-2.5 h-2.5" />
             <span>{paper.citationCount.toLocaleString()}</span>
           </div>
@@ -1485,17 +1505,17 @@ function NetflixPaperCard({ paper, isSaved, onToggleBookmark }) {
         <div className="space-y-0.5">
           <Link 
             to={`/paper/${paper.id}`}
-            className="font-serif font-bold text-xs md:text-sm tracking-tight line-clamp-2 leading-snug hover:text-cozy-amber dark:hover:text-cozy-amber-light block transition-colors text-cozy-night-300 dark:text-white"
+            className="font-serif font-bold text-xs md:text-sm tracking-tight line-clamp-2 leading-snug hover:text-booklyn-amber dark:hover:text-booklyn-amber-light block transition-colors text-booklyn-night-300 dark:text-white"
           >
             {paper.title}
           </Link>
-          <p className="text-[10px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate">
+          <p className="text-[10px] text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 truncate">
             by {paper.authors.join(', ')}
           </p>
         </div>
       </div>
 
-      <div className="flex justify-between items-center pt-2.5 border-t border-cozy-cream-300/20 dark:border-cozy-night-100/10 text-[9px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold uppercase tracking-wider">
+      <div className="flex justify-between items-center pt-2.5 border-t border-booklyn-cream-300/20 dark:border-booklyn-night-100/10 text-[9px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold uppercase tracking-wider">
         <span>{paper.year}</span>
         
         <div className="flex items-center gap-1.5">
@@ -1504,7 +1524,7 @@ function NetflixPaperCard({ paper, isSaved, onToggleBookmark }) {
             className={`p-1.5 rounded-lg border transition-all active:scale-90 ${
               isSaved
                 ? 'bg-green-500/10 border-green-500/20 text-green-500'
-                : 'bg-white/20 dark:bg-white/5 border-white/15 text-cozy-night-100 dark:text-white hover:bg-white/30 dark:hover:bg-white/10'
+                : 'bg-white/20 dark:bg-white/5 border-white/15 text-booklyn-night-100 dark:text-white hover:bg-white/30 dark:hover:bg-white/10'
             }`}
           >
             <Bookmark className={`w-3 h-3 ${isSaved ? 'fill-green-500' : ''}`} />
@@ -1512,7 +1532,7 @@ function NetflixPaperCard({ paper, isSaved, onToggleBookmark }) {
           
           <Link
             to={`/paper/${paper.id}`}
-            className="p-1 rounded-lg bg-cozy-cream-200 dark:bg-cozy-night-100 hover:bg-cozy-amber/25 active:scale-90 transition-all text-cozy-night-100 dark:text-white"
+            className="p-1 rounded-lg bg-booklyn-cream-200 dark:bg-booklyn-night-100 hover:bg-booklyn-amber/25 active:scale-90 transition-all text-booklyn-night-100 dark:text-white"
           >
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cozy-reads-cache-v1';
+const CACHE_NAME = 'booklyn-reads-cache-v1';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -38,6 +38,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests (e.g. POST, PUT, DELETE or Supabase auth calls)
   if (req.method !== 'GET') return;
+
+  // Skip backend API requests (dynamic endpoints)
+  if (url.pathname.startsWith('/api/')) return;
 
   // Strategy 1: Cache-First for static assets (Vite JS/CSS assets, SVG, icons)
   if (
@@ -87,9 +90,12 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => {
+        .catch((err) => {
           // Fallback to cache if network is fully unavailable (offline)
-          return caches.match(req);
+          return caches.match(req).then((cachedResponse) => {
+            if (cachedResponse) return cachedResponse;
+            throw err;
+          });
         })
     );
     return;
@@ -98,7 +104,7 @@ self.addEventListener('fetch', (event) => {
   // Strategy 3: Default Network-First for main pages / router requests (to allow SPA routing fallbacks)
   event.respondWith(
     fetch(req)
-      .catch(() => {
+      .catch((err) => {
         return caches.match(req).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           
@@ -106,6 +112,7 @@ self.addEventListener('fetch', (event) => {
           if (req.mode === 'navigate') {
             return caches.match('/');
           }
+          throw err;
         });
       })
   );

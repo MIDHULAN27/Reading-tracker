@@ -28,7 +28,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const testEmail = `tester-${Math.random().toString(36).substr(2, 9)}@booklyn.app`;
 const testPassword = 'Password123!';
-const testFullName = 'Cozy Tester';
+const testFullName = 'Booklyn Tester';
 
 async function runTest() {
   console.log('\n--- 1. Testing Supabase signUp ---');

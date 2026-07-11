@@ -31,7 +31,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
       setProgressInput('');
       
       // Restore notes draft from local storage if available
-      const draft = localStorage.getItem('cozy_reads_notes_draft');
+      const draft = localStorage.getItem('booklyn_reads_notes_draft');
       setNotes(draft || '');
       
       setError('');
@@ -50,7 +50,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
   const handleNotesChange = (e) => {
     const value = e.target.value;
     setNotes(value);
-    localStorage.setItem('cozy_reads_notes_draft', value);
+    localStorage.setItem('booklyn_reads_notes_draft', value);
   };
 
   const currentPct = selectedBook ? Math.round((selectedBook.progress / selectedBook.pages) * 100) : 0;
@@ -147,7 +147,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
       await updateBook(bookId, updates);
 
       // Clean notes draft draft
-      localStorage.removeItem('cozy_reads_notes_draft');
+      localStorage.removeItem('booklyn_reads_notes_draft');
 
       // Check if this action completed the book!
       if (selectedBook && absoluteNewPage >= selectedBook.pages) {
@@ -194,7 +194,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="absolute inset-0 bg-gradient-to-tr from-cozy-amber to-cozy-lavender text-white z-50 flex flex-col items-center justify-center text-center p-6 space-y-4"
+                className="absolute inset-0 bg-gradient-to-tr from-booklyn-amber to-booklyn-lavender text-white z-50 flex flex-col items-center justify-center text-center p-6 space-y-4"
               >
                 <motion.div
                   initial={{ scale: 0.5, rotate: -20 }}
@@ -215,8 +215,8 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
             )}
 
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-cozy-cream-300/40 dark:border-cozy-night-100/10 mb-4">
-              <div className="flex items-center gap-2 text-cozy-amber dark:text-cozy-amber-light">
+            <div className="flex items-center justify-between pb-4 border-b border-booklyn-cream-300/40 dark:border-booklyn-night-100/10 mb-4">
+              <div className="flex items-center gap-2 text-booklyn-amber dark:text-booklyn-amber-light">
                 <Bookmark className="w-5 h-5" />
                 <h3 className="font-serif text-xl font-bold">Log Reading Session</h3>
               </div>
@@ -231,13 +231,13 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
             {/* Select active books validator */}
             {activeBooks.length === 0 ? (
               <div className="text-center py-6 space-y-3">
-                <AlertCircle className="w-10 h-10 text-cozy-amber mx-auto opacity-50" />
-                <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50 max-w-xs mx-auto leading-relaxed">
+                <AlertCircle className="w-10 h-10 text-booklyn-amber mx-auto opacity-50" />
+                <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 max-w-xs mx-auto leading-relaxed">
                   You don't have any books marked as "Currently Reading". Add or move a book to your reading shelf before logging progress!
                 </p>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 bg-cozy-amber text-white text-xs font-semibold rounded-xl"
+                  className="px-4 py-2 bg-booklyn-amber text-white text-xs font-semibold rounded-xl"
                 >
                   Close Window
                 </button>
@@ -246,30 +246,30 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Book select dropdown */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 pl-1">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 pl-1">
                     Select Reading Book
                   </label>
                   <div className="relative">
-                    <Book className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                    <Book className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                     <select
                       value={bookId}
                       onChange={(e) => setBookId(e.target.value)}
                       className="w-full !pl-9 !pr-8 !py-2.5 glass-input appearance-none cursor-pointer text-xs font-semibold"
                     >
                       {activeBooks.map((b) => (
-                        <option key={b.id} value={b.id} className="bg-cozy-cream-50 dark:bg-cozy-night-200 text-cozy-night-300 dark:text-white">
+                        <option key={b.id} value={b.id} className="bg-booklyn-cream-50 dark:bg-booklyn-night-200 text-booklyn-night-300 dark:text-white">
                           {b.title} ({b.progress}/{b.pages} p.)
                         </option>
                       ))}
                     </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                    <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                   </div>
                 </div>
 
                 {/* Progress Type Segment Controller */}
                 {selectedBook && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 pl-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 pl-1">
                       Tracking Unit
                     </label>
                     <div className="grid grid-cols-3 gap-1 bg-black/10 dark:bg-white/5 p-1 rounded-xl">
@@ -290,8 +290,8 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                             }}
                             className={`py-1.5 rounded-lg text-[10px] font-bold tracking-wider uppercase flex items-center justify-center gap-1 transition-all ${
                               active
-                                ? 'bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white shadow-sm'
-                                : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40 hover:text-cozy-night-300 dark:hover:text-white'
+                                ? 'bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white shadow-sm'
+                                : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 hover:text-booklyn-night-300 dark:hover:text-white'
                             }`}
                           >
                             <Icon className="w-3.5 h-3.5" />
@@ -308,7 +308,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                   {/* Dynamic Progress Input */}
                   {selectedBook && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 pl-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 pl-1">
                         {trackMode === 'pages' 
                           ? `New Page (Current: ${selectedBook.progress})` 
                           : trackMode === 'percentage'
@@ -317,11 +317,11 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                       </label>
                       <div className="relative">
                         {trackMode === 'pages' ? (
-                          <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                          <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                         ) : trackMode === 'percentage' ? (
-                          <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                          <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                         ) : (
-                          <Bookmark className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                          <Bookmark className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                         )}
                         <input
                           type="number"
@@ -345,11 +345,11 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
 
                   {/* Duration input */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40 pl-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 pl-1">
                       Time Spent (Min)
                     </label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                      <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                       <input
                         type="number"
                         min="1"
@@ -366,7 +366,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                 {/* Session Notes input */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-center pl-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-cozy-night-100/50 dark:text-cozy-cream-200/40">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-booklyn-night-100/50 dark:text-booklyn-cream-200/40">
                       Reading Notes & Musings
                     </label>
                     {notes && (
@@ -376,7 +376,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                     )}
                   </div>
                   <div className="relative">
-                    <Edit2 className="absolute left-3 top-3 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/40" />
+                    <Edit2 className="absolute left-3 top-3 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/40" />
                     <textarea
                       rows="3"
                       placeholder="Share some quick thoughts on this session..."
@@ -407,7 +407,7 @@ export default function LogSessionModal({ isOpen, onClose, initialBookId = null,
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-semibold text-xs hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-semibold text-xs hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     {loading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

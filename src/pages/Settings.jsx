@@ -102,7 +102,7 @@ export default function Settings() {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `cozy_reads_library_backup.json`);
+      downloadAnchor.setAttribute("download", `booklyn_reads_library_backup.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
@@ -202,10 +202,10 @@ export default function Settings() {
         }
 
         // 2. Clear local storage caches
-        localStorage.removeItem('cozy_reads_books');
-        localStorage.removeItem('cozy_reads_logs');
-        localStorage.removeItem('cozy_reads_daily_goal');
-        localStorage.removeItem('cozy_reads_notes_draft');
+        localStorage.removeItem('booklyn_reads_books');
+        localStorage.removeItem('booklyn_reads_logs');
+        localStorage.removeItem('booklyn_reads_daily_goal');
+        localStorage.removeItem('booklyn_reads_notes_draft');
 
         // 3. Execute auth logout
         if (signOut) {
@@ -227,7 +227,7 @@ export default function Settings() {
       {/* Page Title */}
       <div>
         <h1 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-2">Shelf Settings</h1>
-        <p className="text-sm text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+        <p className="text-sm text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
           Tailor your daily goals, manage database parameters, and export your archives.
         </p>
       </div>
@@ -260,13 +260,13 @@ export default function Settings() {
         
         {/* Module 1: Goal tracker edit */}
         <div id="goals" className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 text-cozy-amber">
+          <div className="flex items-center gap-2.5 text-booklyn-amber">
             <Target className="w-5 h-5" />
-            <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Daily reading target</h3>
+            <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Daily reading target</h3>
           </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
-            <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 max-w-md leading-relaxed">
+            <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 max-w-md leading-relaxed">
               Configure your daily reading session target. This progress maps dynamically inside your home radial metric chart.
             </p>
             <div className="flex items-center gap-3">
@@ -279,7 +279,7 @@ export default function Settings() {
               />
               <button
                 onClick={handleSaveGoal}
-                className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-semibold text-xs hover:brightness-110 transition-all active:scale-95"
+                className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-semibold text-xs hover:brightness-110 transition-all active:scale-95"
               >
                 Apply Target
               </button>
@@ -289,14 +289,14 @@ export default function Settings() {
 
         {/* Module 2: Dark mode toggle */}
         <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 text-cozy-lavender">
+          <div className="flex items-center gap-2.5 text-booklyn-lavender">
             {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Aesthetic selection</h3>
+            <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Aesthetic selection</h3>
           </div>
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
-            <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 max-w-md leading-relaxed">
-              Select between a cozy Light wood book atmosphere and a premium velvet obsidian Dark mode.
+            <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 max-w-md leading-relaxed">
+              Select between a booklyn Light wood book atmosphere and a premium velvet obsidian Dark mode.
             </p>
             <button
               onClick={toggleTheme}
@@ -309,29 +309,29 @@ export default function Settings() {
 
         {/* Module 3: Database diagnostics */}
         <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 text-cozy-amber">
+          <div className="flex items-center gap-2.5 text-booklyn-amber">
             <Database className="w-5 h-5" />
-            <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Database connection diagnostic</h3>
+            <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Database connection diagnostic</h3>
           </div>
 
           <div className="space-y-4 pt-1">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 max-w-md leading-relaxed">
+              <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 max-w-md leading-relaxed">
                 Booklyn operates in high-fidelity offline mode automatically if environment keys are missing. Connect to your Supabase instance by defining `.env` secrets.
               </p>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 border border-white/10">
-                <span className={`w-2.5 h-2.5 rounded-full ${dbDetails.mode === 'supabase' ? 'bg-green-500' : 'bg-cozy-amber animate-pulse'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full ${dbDetails.mode === 'supabase' ? 'bg-green-500' : 'bg-booklyn-amber animate-pulse'}`} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">{dbDetails.mode}</span>
               </div>
             </div>
 
             <div className="text-xs font-semibold p-4 rounded-2xl bg-white/10 dark:bg-black/10 border border-white/10 font-mono space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-cozy-night-100/40 dark:text-cozy-cream-200/40">Status:</span>
+                <span className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">Status:</span>
                 <span>{dbDetails.status}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-cozy-night-100/40 dark:text-cozy-cream-200/40">Provider:</span>
+                <span className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/40">Provider:</span>
                 <span>{dbDetails.url}</span>
               </div>
             </div>
@@ -341,19 +341,19 @@ export default function Settings() {
         {/* Change account password (only for authenticated, non-guest users) */}
         {user && !user.email?.includes('guest') && (
           <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl space-y-4">
-            <div className="flex items-center gap-2.5 text-cozy-lavender">
-              <Lock className="w-5 h-5 text-cozy-lavender" />
-              <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Change account password</h3>
+            <div className="flex items-center gap-2.5 text-booklyn-lavender">
+              <Lock className="w-5 h-5 text-booklyn-lavender" />
+              <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Change account password</h3>
             </div>
             
             <form onSubmit={handleChangePassword} className="space-y-4 pt-1">
-              <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 leading-relaxed">
+              <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 leading-relaxed">
                 Establish a new password key for your library account. Make sure it is at least 6 characters and contains a number or special symbol.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-cozy-night-100/40 dark:text-cozy-cream-200/30" />
+                  <Lock className="absolute left-3.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-booklyn-night-100/40 dark:text-booklyn-cream-200/30" />
                   <input
                     type="password"
                     required
@@ -366,7 +366,7 @@ export default function Settings() {
                 <button
                   type="submit"
                   disabled={pwdLoading}
-                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                  className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
                 >
                   {pwdLoading ? 'Updating Key...' : 'Update Password Key'}
                 </button>
@@ -379,11 +379,11 @@ export default function Settings() {
         <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl space-y-4">
           <div className="flex items-center gap-2.5 text-red-500">
             <Trash2 className="w-5 h-5" />
-            <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Data portability & maintenance</h3>
+            <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Data portability & maintenance</h3>
           </div>
 
           <div className="space-y-4 pt-1">
-            <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 leading-relaxed">
+            <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 leading-relaxed">
               Maintain full ownership of your records. Download backup schedules, import old backups, or trigger hard resets.
             </p>
 
@@ -393,13 +393,13 @@ export default function Settings() {
                 onClick={handleExportData}
                 className="py-2.5 px-4 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-semibold flex items-center gap-2 shadow-sm active:scale-95 transition-transform"
               >
-                <Download className="w-4 h-4 text-cozy-amber" />
+                <Download className="w-4 h-4 text-booklyn-amber" />
                 <span>Export library backup</span>
               </button>
 
               {/* Import backup button picker */}
               <label className="py-2.5 px-4 rounded-xl bg-white/20 dark:bg-white/5 border border-white/25 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-xs font-semibold flex items-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer">
-                <Upload className="w-4 h-4 text-cozy-lavender" />
+                <Upload className="w-4 h-4 text-booklyn-lavender" />
                 <span>Import library backup</span>
                 <input
                   type="file"

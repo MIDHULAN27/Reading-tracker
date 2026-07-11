@@ -8,10 +8,10 @@ export default function LoadingScreen() {
   const { theme } = useTheme();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-cream-100/40 dark:bg-cozy-night-300/40 backdrop-blur-xl transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-booklyn-cream-100/40 dark:bg-booklyn-night-300/40 backdrop-blur-xl transition-all duration-300">
       {/* Decorative ambient backdrop light circles */}
-      <div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] rounded-full bg-cozy-amber/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-cozy-lavender/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] rounded-full bg-booklyn-amber/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-booklyn-lavender/5 blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -29,7 +29,7 @@ export default function LoadingScreen() {
               stroke="currentColor"
               strokeWidth="6"
               fill="transparent"
-              className="text-cozy-cream-300/50 dark:text-cozy-night-100/20"
+              className="text-booklyn-cream-300/50 dark:text-booklyn-night-100/20"
             />
             <circle
               cx="50"
@@ -68,18 +68,18 @@ export default function LoadingScreen() {
           </div>
         </div>
 
-        <h3 className="font-serif font-bold text-lg text-cozy-night-300 dark:text-white leading-snug tracking-tight">
+        <h3 className="font-serif font-bold text-lg text-booklyn-night-300 dark:text-white leading-snug tracking-tight">
           Opening Booklyn...
         </h3>
-        <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/40 mt-2 font-medium">
+        <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/40 mt-2 font-medium">
           Setting up your reading sanctuary
         </p>
 
         {/* Pulsing micro indicators */}
         <div className="flex gap-1.5 mt-5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce [animation-delay:-0.3s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce [animation-delay:-0.15s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce" />
+          <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce [animation-delay:-0.3s]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce [animation-delay:-0.15s]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce" />
         </div>
       </motion.div>
     </div>

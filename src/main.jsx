@@ -8,10 +8,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('Cozy Reads Service Worker registered successfully: Scope =', registration.scope);
+        console.log('Booklyn Service Worker registered successfully: Scope =', registration.scope);
       })
       .catch((error) => {
-        console.warn('Cozy Reads Service Worker registration encountered an error:', error);
+        console.warn('Booklyn Service Worker registration encountered an error:', error);
       });
   });
 }

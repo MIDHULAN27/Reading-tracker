@@ -32,7 +32,7 @@ export const useReviewStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const activeUser = useAuthStore.getState().user;
-      const currentUserId = activeUser?.id || 'guest-cozy-reader';
+      const currentUserId = activeUser?.id || 'guest-booklyn-reader';
       const userName = activeUser?.user_metadata?.full_name || activeUser?.email || 'Anonymous Reader';
       
       const newReview = await dbService.reviews.addReview({
@@ -109,7 +109,7 @@ export const useReviewStore = create((set, get) => ({
 
   toggleReaction: async (reviewId) => {
     const activeUser = useAuthStore.getState().user;
-    const userId = activeUser?.id || 'guest-cozy-reader';
+    const userId = activeUser?.id || 'guest-booklyn-reader';
     const previousReviews = get().reviews;
 
     // Optimistic toggle reaction

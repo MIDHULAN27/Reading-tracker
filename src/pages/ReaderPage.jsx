@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Reader from '../components/Reader';
 import { useLibraryStore } from '../store/useLibraryStore';
 import { booksApi } from '../api/booksApi';
@@ -8,6 +8,7 @@ import LoadingScreen from '../components/LoadingScreen';
 export default function ReaderPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { books, fetchBooks, addBook } = useLibraryStore();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +71,11 @@ export default function ReaderPage() {
   }, [id, fetchBooks]);
 
   const handleClose = () => {
-    // Navigate back to the book detail page
-    navigate(`/book/${id}`);
+    if (location.state?.fromBookDetails) {
+      navigate(-1);
+    } else {
+      navigate(`/book/${id}`, { replace: true });
+    }
   };
 
   if (loading) {
@@ -80,15 +84,15 @@ export default function ReaderPage() {
 
   if (error || !book) {
     return (
-      <div className="min-h-screen bg-cozy-cream-100 dark:bg-cozy-night-300 flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-booklyn-cream-100 dark:bg-booklyn-night-300 flex flex-col items-center justify-center p-6 text-center">
         <div className="glass-panel border-red-500/25 p-8 rounded-3xl max-w-md space-y-4 shadow-xl">
           <h2 className="text-xl font-serif font-bold text-red-500">Sanctuary Error</h2>
-          <p className="text-sm text-cozy-night-100/60 dark:text-cozy-cream-200/50 font-sans">
+          <p className="text-sm text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 font-sans">
             {error || 'The requested book could not be prepared for reading.'}
           </p>
           <button
             onClick={() => navigate('/discover')}
-            className="px-5 py-2.5 rounded-xl bg-cozy-amber text-white font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer font-sans"
+            className="px-5 py-2.5 rounded-xl bg-booklyn-amber text-white font-bold text-xs hover:brightness-110 active:scale-95 transition-all cursor-pointer font-sans"
           >
             Return to Discover
           </button>

@@ -6,8 +6,8 @@
 
 class SyncManager {
   constructor() {
-    this.queueKey = 'cozy_reads_sync_queue';
-    this.simulatedOfflineKey = 'cozy_reads_simulated_offline';
+    this.queueKey = 'booklyn_reads_sync_queue';
+    this.simulatedOfflineKey = 'booklyn_reads_simulated_offline';
     this.subscribers = new Set();
     
     // Bind network events

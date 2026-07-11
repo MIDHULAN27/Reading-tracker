@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../services/supabaseClient';
@@ -7,13 +7,28 @@ import { useTheme } from '../context/ThemeContext';
 import logoEmblemLight from '../assets/logo-emblem-light.png';
 import logoEmblemDarkGold from '../assets/logo-emblem-dark-gold.png';
 
+const CALLBACK_TIMEOUT_MS = 15000; // 15 second maximum for OAuth callback
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const { init } = useAuthStore();
   const { theme } = useTheme();
+  const [callbackError, setCallbackError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
+    let timeoutTimer = null;
+
+    // Hard timeout: if OAuth callback doesn't resolve in 15s, redirect to auth
+    timeoutTimer = setTimeout(() => {
+      if (mounted) {
+        console.error('[Booklyn Auth] OAuth callback timed out after 15s. Redirecting to login.');
+        setCallbackError('Authentication timed out. Please try signing in again.');
+        setTimeout(() => {
+          if (mounted) navigate('/auth', { replace: true });
+        }, 2000);
+      }
+    }, CALLBACK_TIMEOUT_MS);
 
     const handleOAuthCallback = async () => {
       console.info('[Booklyn Auth] OAuth callback page mounted. Processing tokens...');
@@ -27,31 +42,46 @@ export default function AuthCallback() {
           console.info('[Booklyn Auth] OAuth session parsed successfully. User email:', session.user.email);
           
           if (mounted) {
+            clearTimeout(timeoutTimer);
             // Re-run init to synchronize auth listeners and update state
             await init();
             navigate('/', { replace: true });
           }
         } else {
-          // If no session is recovered immediately, wait a short moments
+          // If no session is recovered immediately, wait a short moment
           // in case background listeners are still resolving the exchange
           console.warn('[Booklyn Auth] No immediate OAuth session found. Waiting brief period...');
-          const timeout = setTimeout(async () => {
-            const { data: { secondTrySession } } = await supabase.auth.getSession();
-            if (secondTrySession?.user && mounted) {
-              await init();
-              navigate('/', { replace: true });
-            } else if (mounted) {
-              console.warn('[Booklyn Auth] Failed to capture OAuth session on retry. Returning to login.');
-              navigate('/auth', { replace: true });
+          const retryTimeout = setTimeout(async () => {
+            try {
+              const { data: { session: retrySession } } = await supabase.auth.getSession();
+              if (retrySession?.user && mounted) {
+                clearTimeout(timeoutTimer);
+                await init();
+                navigate('/', { replace: true });
+              } else if (mounted) {
+                clearTimeout(timeoutTimer);
+                console.warn('[Booklyn Auth] Failed to capture OAuth session on retry. Returning to login.');
+                navigate('/auth', { replace: true });
+              }
+            } catch (retryErr) {
+              console.error('[Booklyn Auth] OAuth retry session fetch failed:', retryErr.message);
+              if (mounted) {
+                clearTimeout(timeoutTimer);
+                navigate('/auth', { replace: true });
+              }
             }
           }, 1500);
 
-          return () => clearTimeout(timeout);
+          return () => clearTimeout(retryTimeout);
         }
       } catch (err) {
         console.error('[Booklyn Auth] OAuth exchange failure:', err.message);
         if (mounted) {
-          navigate('/auth', { replace: true });
+          clearTimeout(timeoutTimer);
+          setCallbackError('Authentication failed. Redirecting to login...');
+          setTimeout(() => {
+            if (mounted) navigate('/auth', { replace: true });
+          }, 1500);
         }
       }
     };
@@ -60,14 +90,15 @@ export default function AuthCallback() {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutTimer);
     };
   }, [navigate, init]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cozy-cream-100/40 dark:bg-cozy-night-300/40 backdrop-blur-xl transition-all duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-booklyn-cream-100/40 dark:bg-booklyn-night-300/40 backdrop-blur-xl transition-all duration-300">
       {/* Decorative ambient backdrop light circles */}
-      <div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] rounded-full bg-cozy-amber/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-cozy-lavender/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[250px] h-[250px] rounded-full bg-booklyn-amber/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-booklyn-lavender/5 blur-3xl pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -85,7 +116,7 @@ export default function AuthCallback() {
               stroke="currentColor"
               strokeWidth="6"
               fill="transparent"
-              className="text-cozy-cream-300/50 dark:text-cozy-night-100/20"
+              className="text-booklyn-cream-300/50 dark:text-booklyn-night-100/20"
             />
             <circle
               cx="50"
@@ -124,19 +155,21 @@ export default function AuthCallback() {
           </div>
         </div>
 
-        <h3 className="font-serif font-bold text-lg text-cozy-night-300 dark:text-white leading-snug tracking-tight">
-          Connecting to Booklyn...
+        <h3 className="font-serif font-bold text-lg text-booklyn-night-300 dark:text-white leading-snug tracking-tight">
+          {callbackError ? 'Authentication Issue' : 'Connecting to Booklyn...'}
         </h3>
-        <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/40 mt-2 font-medium">
-          Completing your secure sign in with Google
+        <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/40 mt-2 font-medium">
+          {callbackError || 'Completing your secure sign in with Google'}
         </p>
 
         {/* Pulsing micro indicators */}
-        <div className="flex gap-1.5 mt-5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce [animation-delay:-0.3s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce [animation-delay:-0.15s]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-cozy-amber animate-bounce" />
-        </div>
+        {!callbackError && (
+          <div className="flex gap-1.5 mt-5">
+            <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce [animation-delay:-0.3s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce [animation-delay:-0.15s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-booklyn-amber animate-bounce" />
+          </div>
+        )}
       </motion.div>
     </div>
   );

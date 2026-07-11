@@ -1,7 +1,6 @@
 import axiosInstance from './axiosInstance';
 
 const GOOGLE_BOOKS_URL = 'https://www.googleapis.com/books/v1/volumes';
-const GUTENDEX_URL = 'https://gutendex.com/books/';
 
 // Helper to clean author names from Google Books or Gutendex
 export const cleanAuthorName = (name) => {
@@ -14,7 +13,7 @@ export const cleanAuthorName = (name) => {
   return name;
 };
 
-// Formatter to map Google Books API results into Cozy Reads unified Book model
+// Formatter to map Google Books API results into Booklyn unified Book model
 export const formatGoogleBook = (volume) => {
   const info = volume.volumeInfo || {};
   const id = volume.id;
@@ -64,7 +63,7 @@ export const formatGoogleBook = (volume) => {
   };
 };
 
-// Helper to format Gutendex results into Cozy Reads unified Book model (used for fallbacks/resolution)
+// Helper to format Gutendex results into Booklyn unified Book model (used for fallbacks/resolution)
 export const formatGutenbergBook = (doc) => {
   const formats = doc.formats || {};
   const coverUrl = formats['image/jpeg'] || '';
@@ -323,6 +322,16 @@ const OFFLINE_GUTENBERG_CLASSICS = [
     subjects: ['Epic poetry', 'Old English literature'],
     epub_url: 'https://www.gutenberg.org/cache/epub/16328/pg16328.epub',
     pdf_url: '', text_url: 'https://www.gutenberg.org/cache/epub/16328/pg16328.txt', source: 'Offline Fallback'
+  },
+  {
+    id: '1696', title: 'A Vindication of the Rights of Woman', author: 'Mary Wollstonecraft',
+    cover_url: 'https://www.gutenberg.org/cache/epub/1696/pg1696.cover.medium.jpg',
+    cover_color: 'from-purple-700 to-purple-950', pages: 280, genre: 'Philosophy',
+    publish_year: '1792', publisher: 'Project Gutenberg', language: 'EN',
+    ratings_average: 4.4, download_count: 18500,
+    subjects: ['Philosophy', 'Feminism', 'Women\'s rights'],
+    epub_url: 'https://www.gutenberg.org/cache/epub/1696/pg1696.epub',
+    pdf_url: '', text_url: 'https://www.gutenberg.org/cache/epub/1696/pg1696.txt', source: 'Offline Fallback'
   }
 ];
 
@@ -399,7 +408,7 @@ export const booksApi = {
     if (!id) return 'No description is available for this edition.';
 
     if (String(id).startsWith('pdf-')) {
-      return 'Personal imported local PDF book available for offline reading in your Cozy sanctuary.';
+      return 'Personal imported local PDF book available for offline reading in your Booklyn sanctuary.';
     }
 
     // Google Books volume detail fetch
@@ -414,31 +423,28 @@ export const booksApi = {
         console.warn(`Could not resolve Google Books details for ID ${cleanId}:`, err.message);
       }
     } else {
-      // Gutenberg detail fetch for backward compatibility
+      // Gutenberg detail fetch via backend proxy to bypass CORS
       try {
-        const response = await axiosInstance.get(`${GUTENDEX_URL}/${id}/`);
+        const response = await axiosInstance.get(`/api/books/detail/${id}`);
         if (response.data) {
           const doc = response.data;
-          if (doc.summaries && doc.summaries.length > 0) {
-            return doc.summaries[0];
+          if (doc.description) {
+            return doc.description;
           }
-          const author = doc.authors && doc.authors.length > 0 
-            ? cleanAuthorName(doc.authors[0].name) 
-            : 'Unknown Author';
-          return `"${doc.title}" is a renowned literature milestone by ${author}. This digital edition is officially catalogued under Project Gutenberg.`;
+          return `"${doc.title}" is a renowned literature milestone by ${doc.author}. This digital edition is officially catalogued under Project Gutenberg.`;
         }
       } catch (err) {
-        console.warn(`Could not resolve Gutendex details for ID ${id}:`, err.message);
+        console.warn(`Could not resolve Gutendex details for ID ${id} via proxy:`, err.message);
       }
     }
 
     // Match offline fallbacks
     const fallback = OFFLINE_GUTENBERG_CLASSICS.find(b => b.id === String(id));
     if (fallback) {
-      return `"${fallback.title}" is a renowned literature milestone by ${fallback.author}. Direct reflowable EPUB is available in your Cozy Sanctuary.`;
+      return `"${fallback.title}" is a renowned literature milestone by ${fallback.author}. Direct reflowable EPUB is available in your Booklyn.`;
     }
 
-    return 'A classic masterpiece available for in-app reading inside Cozy Reads.';
+    return 'A classic masterpiece available for in-app reading inside Booklyn.';
   },
 
   // Alias for detail resolver
@@ -498,10 +504,10 @@ export const booksApi = {
     if (!title) return null;
 
     try {
-      // Search Gutendex for title
-      const response = await axiosInstance.get(GUTENDEX_URL, {
+      // Search Gutendex using the backend search proxy to bypass CORS
+      const response = await axiosInstance.get('/api/books/gutenberg/search', {
         params: {
-          search: title
+          q: title
         }
       });
 
@@ -570,16 +576,130 @@ export const booksApi = {
 
   /**
    * Fetch a single book by ID, branching for Google Books and Project Gutenberg
+   * WITH TIMEOUT PROTECTION AND COMPREHENSIVE FALLBACKS
    */
   getBook: async (id) => {
     if (!id) throw new Error('ID is required');
-    if (String(id).startsWith('gb-')) {
-      const cleanId = id.replace('gb-', '');
-      const response = await axiosInstance.get(`${GOOGLE_BOOKS_URL}/${cleanId}`);
-      return formatGoogleBook(response.data);
-    } else {
-      const response = await axiosInstance.get(`/api/books/detail/${id}`);
-      return response.data;
+    
+    console.log('[BooksAPI] getBook() START - ID:', id, 'Type:', typeof id);
+    
+    // Helper: Timeout wrapper
+    const withTimeout = (promise, ms = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Book fetch timeout after ${ms}ms`)), ms)
+        )
+      ]);
+    };
+    
+    // Convert to string for consistent handling
+    const idStr = String(id).trim();
+    console.log('[BooksAPI] Normalized ID:', idStr);
+    
+    // Google Books ID (starts with 'gb-')
+    if (idStr.startsWith('gb-')) {
+      const cleanId = idStr.replace('gb-', '');
+      try {
+        console.log('[BooksAPI] Route: Google Books - cleanId:', cleanId);
+        const response = await withTimeout(
+          axiosInstance.get(`${GOOGLE_BOOKS_URL}/${cleanId}`),
+          8000
+        );
+        console.log('[BooksAPI] ✅ Google Books response:', response.data.volumeInfo?.title);
+        return formatGoogleBook(response.data);
+      } catch (err) {
+        console.warn('[BooksAPI] ❌ Google Books fetch failed:', err.message);
+        // Try offline fallback
+        const fallback = OFFLINE_GUTENBERG_CLASSICS.find(b => b.id === idStr);
+        if (fallback) {
+          console.log('[BooksAPI] Using offline fallback for gb- ID:', idStr);
+          return fallback;
+        }
+        throw err;
+      }
+    } 
+    // Gutenberg ID (numeric only)
+    else if (/^\d+$/.test(idStr)) {
+      try {
+        console.log('[BooksAPI] Route: Backend Proxy - numeric ID:', idStr);
+        const response = await withTimeout(
+          axiosInstance.get(`/api/books/detail/${idStr}`),
+          15000
+        );
+        if (!response.data || !response.data.id) {
+          throw new Error('Invalid response from backend proxy');
+        }
+        console.log('[BooksAPI] ✅ Backend proxy response:', response.data.title);
+        return response.data;
+      } catch (err) {
+        console.warn('[BooksAPI] ❌ Gutendex fetch failed for ID', idStr, ':', err.message);
+        // Try offline fallback
+        const fallback = OFFLINE_GUTENBERG_CLASSICS.find(b => b.id === String(idStr));
+        if (fallback) {
+          console.log('[BooksAPI] ✅ Using offline fallback for numeric ID:', idStr);
+          return fallback;
+        }
+        // Create synthetic book instead of throwing
+        console.warn('[BooksAPI] Creating synthetic book for unknown ID:', idStr);
+        return {
+          id: idStr,
+          title: 'Classic Literature from Project Gutenberg',
+          author: 'Unknown Author',
+          cover_url: '',
+          cover_color: 'from-indigo-600 to-indigo-950',
+          pages: 300,
+          genre: 'Literature',
+          publish_year: 'Classic',
+          publisher: 'Project Gutenberg',
+          language: 'EN',
+          ratings_average: 4.2,
+          download_count: 0,
+          subjects: ['Classic', 'Literature'],
+          epub_url: `https://www.gutenberg.org/cache/epub/${idStr}/pg${idStr}.epub`,
+          pdf_url: '',
+          text_url: `https://www.gutenberg.org/cache/epub/${idStr}/pg${idStr}.txt`,
+          source: 'Project Gutenberg (API Unavailable)'
+        };
+      }
+    }
+    // Fallback for unknown ID format: check offline classics first
+    else {
+      console.warn('[BooksAPI] Route: Unknown format - ID:', idStr);
+      // Try exact match in offline classics
+      let fallback = OFFLINE_GUTENBERG_CLASSICS.find(b => b.id === idStr);
+      if (fallback) {
+        console.log('[BooksAPI] ✅ Found in offline classics (exact match):', idStr);
+        return fallback;
+      }
+      
+      // Try partial match by title
+      fallback = OFFLINE_GUTENBERG_CLASSICS.find(b => 
+        b.title.toLowerCase().includes(idStr.toLowerCase()) ||
+        idStr.toLowerCase().includes(b.id)
+      );
+      if (fallback) {
+        console.log('[BooksAPI] ✅ Found in offline classics (partial match):', fallback.title);
+        return fallback;
+      }
+      
+      // Try as numeric if it looks like a number
+      if (!isNaN(idStr)) {
+        console.log('[BooksAPI] Retrying as numeric ID via backend proxy:', idStr);
+        try {
+          const response = await withTimeout(
+            axiosInstance.get(`/api/books/detail/${idStr}`),
+            8000
+          );
+          console.log('[BooksAPI] ✅ Backend proxy response (numeric retry):', response.data.title);
+          return response.data;
+        } catch (numErr) {
+          console.warn('[BooksAPI] Numeric retry failed:', numErr.message);
+        }
+      }
+      
+      console.error('[BooksAPI] ❌ All attempts failed for ID:', idStr);
+      throw new Error(`Book not found: "${idStr}". ID format not recognized and not in offline database.`);
     }
   }
 };

@@ -47,8 +47,8 @@ async function fetchBlobWithTimeout(url, options = {}, msTimeout = 10000) {
   return Promise.race([fetchPromise, timeoutPromise]);
 }
 
-// Utility to download a binary ebook blob bypassing CORS with multiple high-availability proxies
-async function downloadWithFallback(url) {
+// Utility to download a binary ebook blob routing requests through the Booklyn Express backend proxy endpoint to bypass CORS
+async function downloadFromBackend(url) {
   if (!url) throw new Error('Invalid URL provided.');
   
   // Clean URL to absolute format if needed
@@ -57,47 +57,21 @@ async function downloadWithFallback(url) {
     targetUrl = 'https:' + url;
   }
 
-  const errors = [];
-  const timeoutMs = 10000; // 10 seconds timeout per download attempt
+  const backendUrl = `/api/epub?url=${encodeURIComponent(targetUrl)}`;
+  const timeoutMs = 25000; // 25 seconds timeout for backend fetch + stream proxy
 
-  // Try 1: Direct fetch (CORS might be enabled on some mirrors/domains)
   try {
-    return await fetchBlobWithTimeout(targetUrl, {}, timeoutMs);
+    return await fetchBlobWithTimeout(backendUrl, {}, timeoutMs);
   } catch (err) {
-    errors.push(`Direct fetch error: ${err.message}`);
+    console.error('[Booklyn Reader] Proxy download failed:', err);
+    throw new Error(err.message || 'Booklyn backend or Gutenberg proxy is unreachable.');
   }
-
-  // Try 2: Codetabs CORS proxy (Direct path, extremely fast for Project Gutenberg binaries)
-  try {
-    const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`;
-    return await fetchBlobWithTimeout(proxyUrl, {}, timeoutMs);
-  } catch (err) {
-    errors.push(`Proxy 1 (codetabs) error: ${err.message}`);
-  }
-
-  // Try 3: corsproxy.io (Highly reliable public proxy fallback)
-  try {
-    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
-    return await fetchBlobWithTimeout(proxyUrl, {}, timeoutMs);
-  } catch (err) {
-    errors.push(`Proxy 2 (corsproxy.io) error: ${err.message}`);
-  }
-
-  // Try 4: AllOrigins (Raw proxy fallback)
-  try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-    return await fetchBlobWithTimeout(proxyUrl, {}, timeoutMs);
-  } catch (err) {
-    errors.push(`Proxy 3 (allorigins) error: ${err.message}`);
-  }
-
-  throw new Error(`All download attempts failed due to CORS restrictions or network down.\n${errors.join('\n')}`);
 }
 
 export default function Reader({ book, onClose, onProgressUpdate }) {
   const { updateBook } = useLibraryStore();
-  const [theme, setTheme] = useState(() => localStorage.getItem(`cozy_theme_${book.id}`) || 'light');
-  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem(`cozy_font_${book.id}`)) || 100);
+  const [theme, setTheme] = useState(() => localStorage.getItem(`booklyn_theme_${book.id}`) || 'light');
+  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem(`booklyn_font_${book.id}`)) || 100);
 
   const textColorClass = theme === 'dark' ? '!text-white' : theme === 'sepia' ? '!text-[#433422]' : '!text-slate-800';
   const descColorClass = theme === 'dark' ? '!text-slate-300' : theme === 'sepia' ? '!text-[#5c4a37]' : '!text-slate-600';
@@ -118,12 +92,12 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
   const [epubRenderFailed, setEpubRenderFailed] = useState(false);
 
   // EPUB Reader state
-  const [epubLocation, setEpubLocation] = useState(() => localStorage.getItem(`cozy_pos_${book.id}`) || null);
+  const [epubLocation, setEpubLocation] = useState(() => localStorage.getItem(`booklyn_pos_${book.id}`) || null);
   const renditionRef = useRef(null);
 
   // PDF Reader state
   const [pdfNumPages, setPdfNumPages] = useState(null);
-  const [pdfPageNumber, setPdfPageNumber] = useState(() => Number(localStorage.getItem(`cozy_pos_${book.id}`)) || 1);
+  const [pdfPageNumber, setPdfPageNumber] = useState(() => Number(localStorage.getItem(`booklyn_pos_${book.id}`)) || 1);
   const [pdfScale, setPdfScale] = useState(1.0);
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfWidth, setPdfWidth] = useState(600);
@@ -145,7 +119,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
           const loc = serverProgress.current_location;
           console.log('[Booklyn Reader] Restoring precise location from Supabase:', loc);
           
-          localStorage.setItem(`cozy_pos_${book.id}`, loc);
+          localStorage.setItem(`booklyn_pos_${book.id}`, loc);
           
           if (viewMode === 'pdf') {
             const pageNum = Number(loc);
@@ -278,7 +252,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
         setLoadingError(null);
 
         try {
-          const blob = await downloadWithFallback(activeEpubUrl);
+          const blob = await downloadFromBackend(activeEpubUrl);
           if (!active) return;
           const localUrl = createLocalBlobUrl(blob);
           setLocalEpubUrl(localUrl);
@@ -292,8 +266,8 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
               setViewMode('google-preview');
             } else {
               setLoadingError(
-                'Could not stream this EPUB through any CORS proxy. ' +
-                'Please try again — Project Gutenberg servers can be temporarily unreachable.'
+                `Could not download this EPUB through the Booklyn proxy server. ` +
+                `Reason: ${err.message}. Please try again.`
               );
             }
           }
@@ -319,8 +293,8 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
             const localUrl = createLocalBlobUrl(blob);
             setLocalPdfUrl(localUrl);
           } else if (activePdfUrl) {
-            // Download Gutenberg PDF through CORS proxies
-            const blob = await downloadWithFallback(activePdfUrl);
+            // Download Gutenberg PDF through the backend proxy
+            const blob = await downloadFromBackend(activePdfUrl);
             if (!active) return;
             const localUrl = createLocalBlobUrl(blob);
             setLocalPdfUrl(localUrl);
@@ -338,7 +312,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
               setLoadingError(
                 book.has_pdf
                   ? `Local PDF retrieval failed: ${err.message}`
-                  : 'Could not download the Gutenberg PDF. All CORS proxies timed out. Please retry.'
+                  : `Could not download the Gutenberg PDF through the Booklyn proxy server. Reason: ${err.message}. Please retry.`
               );
             }
           }
@@ -370,7 +344,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
 
   // Save last read position in local storage and database
   const savePosition = (pos, forcedProgressVal = null) => {
-    localStorage.setItem(`cozy_pos_${book.id}`, pos);
+    localStorage.setItem(`booklyn_pos_${book.id}`, pos);
     
     let progressVal = 0;
     if (forcedProgressVal !== null) {
@@ -399,12 +373,12 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
   const [existingBookProgress, setExistingBookProgress] = useState(book.progress || 0);
 
   useEffect(() => {
-    localStorage.setItem(`cozy_theme_${book.id}`, theme);
+    localStorage.setItem(`booklyn_theme_${book.id}`, theme);
     applyEpubTheme();
   }, [theme]);
 
   useEffect(() => {
-    localStorage.setItem(`cozy_font_${book.id}`, fontSize);
+    localStorage.setItem(`booklyn_font_${book.id}`, fontSize);
     applyEpubFontSize();
   }, [fontSize]);
 
@@ -555,13 +529,13 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
               <div className="flex items-center rounded-lg bg-black/5 dark:bg-white/5 p-0.5 border border-zinc-200 dark:border-white/5">
                 <button
                   onClick={() => setViewMode('epub')}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'epub' ? 'bg-cozy-amber text-white shadow-sm' : 'opacity-60'}`}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'epub' ? 'bg-booklyn-amber text-white shadow-sm' : 'opacity-60'}`}
                 >
                   EPUB
                 </button>
                 <button
                   onClick={() => setViewMode('pdf')}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'pdf' ? 'bg-cozy-amber text-white shadow-sm' : 'opacity-60'}`}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${viewMode === 'pdf' ? 'bg-booklyn-amber text-white shadow-sm' : 'opacity-60'}`}
                 >
                   PDF
                 </button>
@@ -591,7 +565,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                       step="10" 
                       value={fontSize} 
                       onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="flex-1 accent-cozy-amber h-1 rounded-full cursor-pointer bg-zinc-200 dark:bg-white/10"
+                      className="flex-1 accent-booklyn-amber h-1 rounded-full cursor-pointer bg-zinc-200 dark:bg-white/10"
                     />
                     <button 
                       onClick={() => setFontSize(prev => Math.min(200, prev + 10))}
@@ -641,7 +615,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
           {/* A. Resolving spinner state */}
           {resolving && (
             <div className="flex flex-col items-center justify-center gap-4 text-center p-8">
-              <RefreshCw className="w-10 h-10 text-cozy-amber animate-spin" />
+              <RefreshCw className="w-10 h-10 text-booklyn-amber animate-spin" />
               <div className="space-y-1">
                 <h4 className={`font-bold text-sm ${textColorClass}`}>Opening Your Book</h4>
                 <p className={`text-xs max-w-xs leading-relaxed ${descColorClass} opacity-85`}>
@@ -654,11 +628,11 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
           {/* A2. Downloading / Loading spinner state */}
           {!resolving && loadingBook && (
             <div className="flex flex-col items-center justify-center gap-4 text-center p-8 animate-pulse">
-              <RefreshCw className="w-10 h-10 text-cozy-amber animate-spin" />
+              <RefreshCw className="w-10 h-10 text-booklyn-amber animate-spin" />
               <div className="space-y-1">
                 <h4 className={`font-bold text-sm ${textColorClass}`}>Downloading Ebook</h4>
                 <p className={`text-xs max-w-xs leading-relaxed ${descColorClass} opacity-85`}>
-                  Streaming digital book content into your private Cozy Sanctuary reader...
+                  Streaming digital book content into your Booklyn reader...
                 </p>
               </div>
             </div>
@@ -680,7 +654,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                 {googleVolumeId && (
                   <button
                     onClick={() => { setLoadingError(null); setViewMode('google-preview'); }}
-                    className="px-5 py-2.5 rounded-xl bg-cozy-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                    className="px-5 py-2.5 rounded-xl bg-booklyn-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
                   >
                     Read with Google Books
                   </button>
@@ -690,7 +664,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                   className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all active:scale-95 ${
                     googleVolumeId
                       ? 'bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 border border-black/10 dark:border-white/10'
-                      : 'bg-cozy-amber hover:brightness-110 text-white shadow-md'
+                      : 'bg-booklyn-amber hover:brightness-110 text-white shadow-md'
                   }`}
                 >
                   Retry Download
@@ -708,7 +682,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
           {/* B. Format Unavailable state */}
           {isFormatUnavailable && (
             <div className="flex flex-col items-center justify-center gap-5 text-center p-8 max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-cozy-amber">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-booklyn-amber">
                 <AlertTriangle className="w-8 h-8" />
               </div>
               <div className="space-y-2">
@@ -724,7 +698,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                 {googleVolumeId && (
                   <button
                     onClick={() => setViewMode('google-preview')}
-                    className="px-6 py-2.5 rounded-xl bg-cozy-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                    className="px-6 py-2.5 rounded-xl bg-booklyn-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
                   >
                     Read with Google Books
                   </button>
@@ -744,6 +718,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
             <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm relative border border-black/5 dark:border-white/5">
               <ReactReader
                 url={localEpubUrl}
+                epubInitOptions={{ openAs: 'epub' }}
                 title={book.title}
                 location={epubLocation}
                 locationChanged={handleEpubLocationChanged}
@@ -771,7 +746,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                 }}
                 loadingView={
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/5 backdrop-blur-xs gap-4">
-                    <RefreshCw className="w-8 h-8 text-cozy-amber animate-spin" />
+                    <RefreshCw className="w-8 h-8 text-booklyn-amber animate-spin" />
                     <p className="text-xs opacity-60">Initializing EPUB reflow engine...</p>
                   </div>
                 }
@@ -782,7 +757,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
           {/* C2. EPUB render failed — auto-switch or show fallback */}
           {!resolving && viewMode === 'epub' && epubRenderFailed && (
             <div className="flex flex-col items-center justify-center gap-5 text-center p-8 max-w-md mx-auto">
-              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-cozy-amber">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center text-booklyn-amber">
                 <AlertTriangle className="w-8 h-8" />
               </div>
               <div className="space-y-2">
@@ -795,7 +770,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                 {googleVolumeId && (
                   <button
                     onClick={() => { setEpubRenderFailed(false); setViewMode('google-preview'); }}
-                    className="px-5 py-2.5 rounded-xl bg-cozy-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
+                    className="px-5 py-2.5 rounded-xl bg-booklyn-amber hover:brightness-110 text-white font-bold text-xs shadow-md transition-all active:scale-95"
                   >
                     Read with Google Books
                   </button>
@@ -850,7 +825,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                   onLoadStart={() => setPdfLoading(true)}
                   loading={
                     <div className="flex flex-col items-center justify-center gap-3 p-12">
-                      <RefreshCw className="w-8 h-8 text-cozy-amber animate-spin" />
+                      <RefreshCw className="w-8 h-8 text-booklyn-amber animate-spin" />
                       <p className="text-xs opacity-60">Initializing canvas engine...</p>
                     </div>
                   }
@@ -909,7 +884,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
                   : 'bg-white border-slate-100 text-slate-600'
               }`}>
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-3.5 h-3.5 text-cozy-amber" />
+                  <BookOpen className="w-3.5 h-3.5 text-booklyn-amber" />
                   <span className="font-bold tracking-wide uppercase text-[10px]">Google Books Preview</span>
                 </div>
                 <span className="text-[10px] opacity-50">Preview pages may vary by publisher agreement</span>
@@ -941,19 +916,19 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
             theme === 'dark' ? 'bg-[#060a12] border-white/5 text-white' : theme === 'sepia' ? 'bg-[#f5f1de]/70 border-[#e5dfc9] text-[#433422]' : 'bg-white border-slate-200 text-slate-800'
           }`}>
             <div className="flex items-center gap-2 mb-4">
-              <Edit3 className="w-4 h-4 text-cozy-amber" />
+              <Edit3 className="w-4 h-4 text-booklyn-amber" />
               <h3 className="font-serif font-bold text-sm tracking-tight">Reflections Log</h3>
             </div>
 
             <p className="text-[10px] opacity-60 mb-3 leading-relaxed">
-              Record core concepts, questions, or vocabulary notes directly inside your Cozy Reads log repository as you read.
+              Record core concepts, questions, or vocabulary notes directly inside your Booklyn log repository as you read.
             </p>
 
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Capture your thoughts here..."
-              className={`flex-1 p-3 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-cozy-amber resize-none mb-3 transition-all ${
+              className={`flex-1 p-3 text-xs rounded-xl border focus:outline-none focus:ring-1 focus:ring-booklyn-amber resize-none mb-3 transition-all ${
                 theme === 'dark' ? 'bg-white/5 border-white/10 text-white placeholder-white/30' : 'bg-stone-50 border-stone-200 placeholder-zinc-400'
               }`}
             />
@@ -961,7 +936,7 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
             <button
               onClick={handleSaveNotes}
               disabled={savingNote || !noteText.trim()}
-              className="w-full py-2.5 rounded-xl bg-cozy-amber hover:brightness-110 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-glow-amber/5 active:scale-95 transition-all"
+              className="w-full py-2.5 rounded-xl bg-booklyn-amber hover:brightness-110 disabled:opacity-50 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-glow-amber/5 active:scale-95 transition-all"
             >
               {savingNote ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />

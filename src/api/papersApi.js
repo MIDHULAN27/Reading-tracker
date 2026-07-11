@@ -444,7 +444,7 @@ export const papersApi = {
     try {
       const response = await axiosInstance.get(`https://api.unpaywall.org/v2/${encodeURIComponent(cleanDoi)}`, {
         params: {
-          email: 'cozyreads@gmail.com'
+          email: 'booklynreads@gmail.com'
         }
       });
       
@@ -615,6 +615,18 @@ export const papersApi = {
   getPaperDetails: async (id) => {
     if (!id) return null;
 
+    console.log('[PapersAPI] getPaperDetails() called with ID:', id);
+
+    // Timeout wrapper
+    const withTimeout = (promise, ms = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Paper fetch timeout after ${ms}ms`)), ms)
+        )
+      ]);
+    };
+
     // Detect open repositories prefixes
     if (id.startsWith('arxiv-')) {
       return await getArxivDetails(id);
@@ -632,25 +644,32 @@ export const papersApi = {
     }
 
     try {
-      const response = await axiosInstance.get(`${SEMANTIC_SCHOLAR_BASE}/paper/${id}`, {
-        params: {
-          fields: 'paperId,title,authors,abstract,citationCount,openAccessPdf,year,journal,fieldsOfStudy'
-        }
-      });
+      console.log('[PapersAPI] Fetching from Semantic Scholar:', id);
+      const response = await withTimeout(
+        axiosInstance.get(`${SEMANTIC_SCHOLAR_BASE}/paper/${id}`, {
+          params: {
+            fields: 'paperId,title,authors,abstract,citationCount,openAccessPdf,year,journal,fieldsOfStudy'
+          }
+        }),
+        8000
+      );
 
       if (response.data) {
+        console.log('[PapersAPI] Semantic Scholar response received:', response.data.title);
         return formatPaperResult(response.data);
       }
     } catch (apiError) {
-      console.warn(`Paper details query failed for "${id}", searching offline database:`, apiError.message);
+      console.warn(`[PapersAPI] Paper details query failed for "${id}":`, apiError.message);
     }
 
     // Try resolving from offline list
     const offlineMatch = OFFLINE_MOCK_PAPERS.find(p => p.paperId === id);
     if (offlineMatch) {
+      console.log('[PapersAPI] Using offline match for:', id);
       return formatPaperResult({ ...offlineMatch, source: 'Offline Sandbox Details' });
     }
 
+    console.log('[PapersAPI] Generating fallback paper object for:', id);
     // Dynamic generation if ID is arbitrary and offline is called
     return formatPaperResult({
       paperId: id,
@@ -668,26 +687,45 @@ export const papersApi = {
 
   /**
    * Get research paper recommendations based on seed paper ID
+   * WITH TIMEOUT PROTECTION
    */
   getRecommendations: async (id, limit = 4) => {
     if (!id) return [];
 
+    console.log('[PapersAPI] getRecommendations() called for ID:', id);
+
+    // Timeout wrapper
+    const withTimeout = (promise, ms = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Recommendations fetch timeout after ${ms}ms`)), ms)
+        )
+      ]);
+    };
+
     try {
-      const response = await axiosInstance.get(`${RECOMMENDATIONS_BASE}/papers/forpaper/${id}`, {
-        params: {
-          limit: limit,
-          fields: 'paperId,title,authors,abstract,citationCount,openAccessPdf,year,journal,fieldsOfStudy'
-        }
-      });
+      console.log('[PapersAPI] Fetching recommendations from Semantic Scholar...');
+      const response = await withTimeout(
+        axiosInstance.get(`${RECOMMENDATIONS_BASE}/papers/forpaper/${id}`, {
+          params: {
+            limit: limit,
+            fields: 'paperId,title,authors,abstract,citationCount,openAccessPdf,year,journal,fieldsOfStudy'
+          }
+        }),
+        8000
+      );
 
       if (response.data && response.data.recommendedPapers) {
+        console.log('[PapersAPI] Recommendations received:', response.data.recommendedPapers.length);
         return response.data.recommendedPapers.map(formatPaperResult);
       }
     } catch (apiError) {
-      console.warn(`Failed fetching Semantic Scholar recommendations for "${id}":`, apiError.message);
+      console.warn(`[PapersAPI] Failed fetching recommendations for "${id}":`, apiError.message);
     }
 
     // Offline recommendations: return other papers from the offline catalog that do not match the seed ID
+    console.log('[PapersAPI] Using offline recommendations');
     return OFFLINE_MOCK_PAPERS
       .filter(p => p.paperId !== id)
       .slice(0, limit)

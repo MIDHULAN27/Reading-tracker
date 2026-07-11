@@ -39,8 +39,8 @@ export default function RatingPicker({ rating, onChange, maxStars = 5, size = 6,
             <Star
               className={`w-${size} h-${size} ${
                 isFilled 
-                  ? 'fill-cozy-amber text-cozy-amber filter drop-shadow-[0_0_2px_rgba(217,119,6,0.5)]' 
-                  : 'text-cozy-night-100/25 dark:text-cozy-cream-200/20'
+                  ? 'fill-booklyn-amber text-booklyn-amber filter drop-shadow-[0_0_2px_rgba(217,119,6,0.5)]' 
+                  : 'text-booklyn-night-100/25 dark:text-booklyn-cream-200/20'
               }`}
             />
           </button>

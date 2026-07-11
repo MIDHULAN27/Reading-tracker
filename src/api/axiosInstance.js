@@ -87,7 +87,7 @@ axiosInstance.interceptors.response.use(
       delay += Math.random() * 1000;
 
       console.warn(
-        `Cozy Reads API: Transient failure (${error.message || 'Error'}). ` +
+        `Booklyn API: Transient failure (${error.message || 'Error'}). ` +
         `Retrying in ${Math.round(delay)}ms... (${config.retryAttempts} attempts remaining).`
       );
 

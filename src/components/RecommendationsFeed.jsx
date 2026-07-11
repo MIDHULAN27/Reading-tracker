@@ -104,8 +104,8 @@ export default function RecommendationsFeed() {
   return (
     <div className="space-y-4 pt-2">
       <div className="flex items-center gap-2">
-        <Sparkles className="w-5 h-5 text-cozy-amber animate-pulse-subtle" />
-        <h3 className="font-serif text-xl font-bold tracking-tight text-cozy-night-300 dark:text-white">Curated for You</h3>
+        <Sparkles className="w-5 h-5 text-booklyn-amber animate-pulse-subtle" />
+        <h3 className="font-serif text-xl font-bold tracking-tight text-booklyn-night-300 dark:text-white">Curated for You</h3>
       </div>
 
       {/* Horizontal deck layout */}
@@ -117,7 +117,7 @@ export default function RecommendationsFeed() {
               key={book.id}
               onClick={() => handleCardClick(book)}
               whileHover={{ y: -4 }}
-              className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-cozy-amber/25 cursor-pointer flex flex-col justify-between h-44 relative overflow-hidden group select-none shadow-sm"
+              className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-booklyn-amber/25 cursor-pointer flex flex-col justify-between h-44 relative overflow-hidden group select-none shadow-sm"
             >
               {/* Subtle background glow */}
               <div className={`absolute top-[-40px] right-[-40px] w-24 h-24 rounded-full bg-gradient-to-br ${book.cover_color} opacity-[0.04] blur-xl`} />
@@ -130,21 +130,21 @@ export default function RecommendationsFeed() {
                 </div>
 
                 <div className="min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-cozy-amber dark:text-cozy-amber-light">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-booklyn-amber dark:text-booklyn-amber-light">
                     {book.genre}
                   </span>
-                  <h4 className="font-serif font-bold text-sm leading-snug tracking-tight truncate group-hover:text-cozy-amber transition-colors mt-0.5">
+                  <h4 className="font-serif font-bold text-sm leading-snug tracking-tight truncate group-hover:text-booklyn-amber transition-colors mt-0.5">
                     {book.title}
                   </h4>
-                  <p className="text-xs text-cozy-night-100/50 dark:text-cozy-cream-200/40 truncate mt-0.5">
+                  <p className="text-xs text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 truncate mt-0.5">
                     by {book.author}
                   </p>
                 </div>
               </div>
 
               {/* Bottom quick shelve row */}
-              <div className="flex justify-between items-center pt-3 border-t border-cozy-cream-300/20 dark:border-cozy-night-100/10 mt-3">
-                <span className="text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/45 font-semibold uppercase">{book.pages} pages</span>
+              <div className="flex justify-between items-center pt-3 border-t border-booklyn-cream-300/20 dark:border-booklyn-night-100/10 mt-3">
+                <span className="text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/45 font-semibold uppercase">{book.pages} pages</span>
                 
                 {/* Shelve button */}
                 <button
@@ -153,7 +153,7 @@ export default function RecommendationsFeed() {
                   className={`py-1.5 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider active:scale-95 transition-all flex items-center gap-1 ${
                     isAdded
                       ? 'bg-green-500/10 border border-green-500/20 text-green-500'
-                      : 'bg-white/25 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-cozy-night-200 dark:text-white'
+                      : 'bg-white/25 dark:bg-white/5 border border-white/20 dark:border-white/10 hover:bg-white/35 dark:hover:bg-white/10 text-booklyn-night-200 dark:text-white'
                   }`}
                 >
                   {isAdded ? (

@@ -156,13 +156,13 @@ export default function Goals() {
         
         {/* Header Title */}
         <div className="space-y-1">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-cozy-amber dark:text-cozy-amber-light">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-booklyn-amber dark:text-booklyn-amber-light">
             Habit Architect
           </span>
-          <h1 className="font-serif font-bold text-3xl sm:text-4xl text-cozy-night-300 dark:text-white leading-tight">
+          <h1 className="font-serif font-bold text-3xl sm:text-4xl text-booklyn-night-300 dark:text-white leading-tight">
             My Reading Goals
           </h1>
-          <p className="text-xs sm:text-sm text-cozy-night-100/60 dark:text-cozy-cream-200/50">
+          <p className="text-xs sm:text-sm text-booklyn-night-100/60 dark:text-booklyn-cream-200/50">
             Set ambitious targets, monitor weekly reading milestones, and unlock gamified sanctuary achievements.
           </p>
         </div>
@@ -200,11 +200,11 @@ export default function Goals() {
           {/* Daily Goal Configurator */}
           <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl flex flex-col justify-between space-y-6">
             <div className="space-y-4">
-              <div className="flex items-center gap-2.5 text-cozy-amber">
+              <div className="flex items-center gap-2.5 text-booklyn-amber">
                 <Target className="w-5.5 h-5.5" />
-                <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">Daily Target Configuration</h3>
+                <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">Daily Target Configuration</h3>
               </div>
-              <p className="text-xs text-cozy-night-100/65 dark:text-cozy-cream-200/50 leading-relaxed">
+              <p className="text-xs text-booklyn-night-100/65 dark:text-booklyn-cream-200/50 leading-relaxed">
                 Adjust your daily target. Meeting this target expands your reading streak, unlocks active milestones, and displays today's metrics beautifully in your home circular progress ring.
               </p>
             </div>
@@ -217,17 +217,17 @@ export default function Goals() {
                   max="480"
                   value={goalInput}
                   onChange={(e) => setGoalInput(e.target.value)}
-                  className="w-full px-3 py-3 glass-input rounded-2xl text-center text-base font-bold focus:ring-cozy-amber/30"
+                  className="w-full px-3 py-3 glass-input rounded-2xl text-center text-base font-bold focus:ring-booklyn-amber/30"
                   placeholder="Minutes"
                 />
                 <button
                   onClick={handleApplyGoal}
-                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-cozy-amber to-cozy-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 active:scale-95 transition-all shadow-md shadow-cozy-amber/15 whitespace-nowrap"
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-booklyn-amber to-booklyn-amber-dark text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 active:scale-95 transition-all shadow-md shadow-booklyn-amber/15 whitespace-nowrap"
                 >
                   Apply Target
                 </button>
               </div>
-              <div className="flex justify-between items-center text-[10px] text-cozy-night-100/40 dark:text-cozy-cream-200/40 font-semibold px-1">
+              <div className="flex justify-between items-center text-[10px] text-booklyn-night-100/40 dark:text-booklyn-cream-200/40 font-semibold px-1">
                 <span>Active Target: {dailyGoalMinutes} min</span>
                 <span>Max: 8 hours</span>
               </div>
@@ -237,17 +237,17 @@ export default function Goals() {
           {/* Today's Reading Ring Metric */}
           <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl flex items-center justify-between gap-6 relative overflow-hidden">
             <div className="space-y-2 flex-1 min-w-0">
-              <span className="text-[9px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/45 uppercase tracking-widest block">
+              <span className="text-[9px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/45 uppercase tracking-widest block">
                 Today's Session
               </span>
-              <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white truncate">
+              <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white truncate">
                 Today's Target Progress
               </h3>
-              <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/40">
-                You have read <span className="font-bold text-cozy-amber">{todayMinutes} minutes</span> out of your {dailyGoalMinutes} min target.
+              <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/40">
+                You have read <span className="font-bold text-booklyn-amber">{todayMinutes} minutes</span> out of your {dailyGoalMinutes} min target.
               </p>
               <div className="flex items-center gap-1.5 pt-1">
-                <Flame className={`w-4 h-4 ${streak > 0 ? 'text-cozy-amber animate-pulse' : 'text-cozy-night-100/30'}`} />
+                <Flame className={`w-4 h-4 ${streak > 0 ? 'text-booklyn-amber animate-pulse' : 'text-booklyn-night-100/30'}`} />
                 <span className="text-[10px] font-bold uppercase tracking-wider">{streak} Day Active Streak</span>
               </div>
             </div>
@@ -259,21 +259,21 @@ export default function Goals() {
                   cx="48"
                   cy="48"
                   r="38"
-                  className="stroke-cozy-cream-300/40 dark:stroke-cozy-night-100/10 fill-transparent"
+                  className="stroke-booklyn-cream-300/40 dark:stroke-booklyn-night-100/10 fill-transparent"
                   strokeWidth="6.5"
                 />
                 <circle
                   cx="48"
                   cy="48"
                   r="38"
-                  className="stroke-cozy-amber dark:stroke-cozy-amber-light fill-transparent transition-all duration-700"
+                  className="stroke-booklyn-amber dark:stroke-booklyn-amber-light fill-transparent transition-all duration-700"
                   strokeWidth="6.5"
                   strokeDasharray={239}
                   strokeDashoffset={239 - (239 * dailyGoalProgressPct) / 100}
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="absolute text-xs font-bold text-cozy-amber">
+              <span className="absolute text-xs font-bold text-booklyn-amber">
                 {dailyGoalProgressPct}%
               </span>
             </div>
@@ -282,28 +282,28 @@ export default function Goals() {
           {/* Weekly cumulative progress card */}
           <div className="glass-panel rounded-3xl p-6 border border-white/20 dark:border-white/10 shadow-xl flex flex-col justify-between space-y-4">
             <div className="space-y-1">
-              <span className="text-[9px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/45 uppercase tracking-widest block">
+              <span className="text-[9px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/45 uppercase tracking-widest block">
                 7-Day Cumulative Progress
               </span>
-              <h3 className="font-serif text-lg font-bold text-cozy-night-300 dark:text-white">
+              <h3 className="font-serif text-lg font-bold text-booklyn-night-300 dark:text-white">
                 Weekly Goal Milestones
               </h3>
-              <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/40 leading-relaxed">
+              <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/40 leading-relaxed">
                 Aim to read at least <span className="font-bold">{weeklyGoalTarget} minutes</span> (7 * daily target) every week.
               </p>
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between items-center text-[10px] font-bold">
-                <span className="text-cozy-night-100/40 dark:text-cozy-cream-200/35 uppercase">LOGGED MINUTES</span>
-                <span className="text-cozy-amber">{weeklyMinutes} / {weeklyGoalTarget} min ({weeklyGoalProgressPct}%)</span>
+                <span className="text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 uppercase">LOGGED MINUTES</span>
+                <span className="text-booklyn-amber">{weeklyMinutes} / {weeklyGoalTarget} min ({weeklyGoalProgressPct}%)</span>
               </div>
               <div className="w-full h-2 bg-black/10 dark:bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${weeklyGoalProgressPct}%` }}
                   transition={{ duration: 0.8 }}
-                  className="h-full bg-gradient-to-r from-cozy-amber to-cozy-lavender rounded-full"
+                  className="h-full bg-gradient-to-r from-booklyn-amber to-booklyn-lavender rounded-full"
                 />
               </div>
             </div>
@@ -313,12 +313,12 @@ export default function Goals() {
 
         {/* SECTION 2: DYNAMIC ACHIEVEMENT BADGES */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between pb-1.5 border-b border-cozy-cream-300/30 dark:border-cozy-night-100/10">
+          <div className="flex items-center justify-between pb-1.5 border-b border-booklyn-cream-300/30 dark:border-booklyn-night-100/10">
             <div className="flex items-center gap-2">
-              <Award className="w-5.5 h-5.5 text-cozy-amber" />
+              <Award className="w-5.5 h-5.5 text-booklyn-amber" />
               <h2 className="font-serif text-xl font-bold tracking-tight">Active Sanctuary Achievements</h2>
             </div>
-            <span className="px-2.5 py-1 text-[10px] font-bold uppercase bg-gradient-to-tr from-cozy-amber/20 to-cozy-lavender/20 rounded-full text-cozy-amber border border-cozy-amber/25">
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase bg-gradient-to-tr from-booklyn-amber/20 to-booklyn-lavender/20 rounded-full text-booklyn-amber border border-booklyn-amber/25">
               {unlockedCount} / {achievements.length} Unlocked
             </span>
           </div>
@@ -331,20 +331,20 @@ export default function Goals() {
                 whileHover={{ y: -3 }}
                 className={`glass-panel p-5 border rounded-3xl flex items-start gap-4 transition-all duration-300 shadow-sm relative overflow-hidden ${
                   item.unlocked
-                    ? 'border-cozy-amber/35 shadow-glow-amber bg-white/10 dark:bg-cozy-amber/5'
+                    ? 'border-booklyn-amber/35 shadow-glow-amber bg-white/10 dark:bg-booklyn-amber/5'
                     : 'border-white/20 dark:border-white/5 opacity-65'
                 }`}
               >
                 {/* Visual glow on unlock */}
                 {item.unlocked && (
-                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-cozy-amber/5 rounded-full blur-xl pointer-events-none" />
+                  <div className="absolute -top-12 -right-12 w-24 h-24 bg-booklyn-amber/5 rounded-full blur-xl pointer-events-none" />
                 )}
 
                 {/* Badge Icon circle */}
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border transition-all ${
                   item.unlocked
-                    ? 'bg-gradient-to-tr from-cozy-amber to-cozy-amber-dark text-white border-cozy-amber scale-105 shadow-md shadow-cozy-amber/15'
-                    : 'bg-black/10 dark:bg-white/5 border-white/10 text-cozy-night-100/35 dark:text-cozy-cream-200/25'
+                    ? 'bg-gradient-to-tr from-booklyn-amber to-booklyn-amber-dark text-white border-booklyn-amber scale-105 shadow-md shadow-booklyn-amber/15'
+                    : 'bg-black/10 dark:bg-white/5 border-white/10 text-booklyn-night-100/35 dark:text-booklyn-cream-200/25'
                 }`}>
                   {item.id === 'habit_builder' ? (
                     <Flame className="w-5.5 h-5.5" />
@@ -359,21 +359,21 @@ export default function Goals() {
 
                 <div className="space-y-1 flex-1 min-w-0 font-sans">
                   <div className="flex justify-between items-center gap-2">
-                    <h4 className={`font-serif text-sm font-bold truncate ${item.unlocked ? 'text-cozy-night-300 dark:text-white' : 'text-cozy-night-100/50 dark:text-cozy-cream-200/30'}`}>
+                    <h4 className={`font-serif text-sm font-bold truncate ${item.unlocked ? 'text-booklyn-night-300 dark:text-white' : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/30'}`}>
                       {item.title}
                     </h4>
                     {item.unlocked && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-cozy-amber flex-shrink-0" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-booklyn-amber flex-shrink-0" />
                     )}
                   </div>
-                  <p className="text-[11px] text-cozy-night-100/50 dark:text-cozy-cream-200/40 leading-relaxed font-semibold">
+                  <p className="text-[11px] text-booklyn-night-100/50 dark:text-booklyn-cream-200/40 leading-relaxed font-semibold">
                     {item.description}
                   </p>
                   <div className="pt-1.5 flex justify-between items-center">
-                    <span className={`text-[9px] font-black uppercase tracking-wider ${item.unlocked ? 'text-cozy-amber' : 'text-cozy-night-100/30 dark:text-cozy-cream-200/20'}`}>
+                    <span className={`text-[9px] font-black uppercase tracking-wider ${item.unlocked ? 'text-booklyn-amber' : 'text-booklyn-night-100/30 dark:text-booklyn-cream-200/20'}`}>
                       {item.unlocked ? '● Completed' : '○ Locked'}
                     </span>
-                    <span className="text-[9px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/35">
+                    <span className="text-[9px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/35">
                       {item.metric}
                     </span>
                   </div>
@@ -385,25 +385,25 @@ export default function Goals() {
 
         {/* SECTION 3: SANCTUARY CHALLENGES CHECKLIST (PERSISTENT STATE) */}
         <div className="glass-panel border-white/20 dark:border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-tr from-cozy-amber/5 to-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-tr from-booklyn-amber/5 to-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-cozy-amber">
+              <div className="flex items-center gap-2 text-booklyn-amber">
                 <Sparkles className="w-5.5 h-5.5" />
-                <h3 className="font-serif text-xl font-bold tracking-tight text-cozy-night-300 dark:text-white">
+                <h3 className="font-serif text-xl font-bold tracking-tight text-booklyn-night-300 dark:text-white">
                   Active Sanctuary Challenges
                 </h3>
               </div>
-              <p className="text-xs text-cozy-night-100/60 dark:text-cozy-cream-200/50 max-w-lg">
+              <p className="text-xs text-booklyn-night-100/60 dark:text-booklyn-cream-200/50 max-w-lg">
                 Complete custom sanctuary reading challenges to earn achievement flags. Toggled achievements persist to local browser storage securely.
               </p>
             </div>
             <div className="flex flex-col items-end gap-1.5">
-              <span className="text-[10px] font-bold text-cozy-night-100/40 dark:text-cozy-cream-200/35 uppercase tracking-widest">
+              <span className="text-[10px] font-bold text-booklyn-night-100/40 dark:text-booklyn-cream-200/35 uppercase tracking-widest">
                 Challenge Progress
               </span>
-              <span className="text-xs font-bold text-cozy-amber">
+              <span className="text-xs font-bold text-booklyn-amber">
                 {checkedChallengesCount} / 4 ({challengeProgressPct}%)
               </span>
             </div>
@@ -414,7 +414,7 @@ export default function Goals() {
               initial={{ width: 0 }}
               animate={{ width: `${challengeProgressPct}%` }}
               transition={{ duration: 0.5 }}
-              className="h-full bg-gradient-to-r from-cozy-amber to-cozy-lavender rounded-full"
+              className="h-full bg-gradient-to-r from-booklyn-amber to-booklyn-lavender rounded-full"
             />
           </div>
 
@@ -449,24 +449,24 @@ export default function Goals() {
                   onClick={() => handleToggleChallenge(ch.key)}
                   className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all duration-300 w-full select-none cursor-pointer ${
                     active
-                      ? 'bg-gradient-to-r from-cozy-amber/5 to-cozy-lavender/5 border-cozy-amber/35 shadow-sm shadow-cozy-amber/5'
+                      ? 'bg-gradient-to-r from-booklyn-amber/5 to-booklyn-lavender/5 border-booklyn-amber/35 shadow-sm shadow-booklyn-amber/5'
                       : 'bg-black/5 dark:bg-white/5 border-white/10 hover:bg-black/10 dark:hover:bg-white/10'
                   }`}
                 >
                   {/* Styled Checkbox */}
                   <div className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all mt-0.5 flex-shrink-0 ${
                     active
-                      ? 'bg-cozy-amber border-cozy-amber text-white shadow-sm'
-                      : 'border-cozy-night-100/20 dark:border-white/10 bg-white/20'
+                      ? 'bg-booklyn-amber border-booklyn-amber text-white shadow-sm'
+                      : 'border-booklyn-night-100/20 dark:border-white/10 bg-white/20'
                   }`}>
                     {active && <Check className="w-3.5 h-3.5 stroke-[3px]" />}
                   </div>
 
                   <div className="space-y-0.5 flex-1 min-w-0">
-                    <span className={`text-xs font-bold font-serif ${active ? 'text-cozy-amber line-through opacity-85' : 'text-cozy-night-300 dark:text-white'}`}>
+                    <span className={`text-xs font-bold font-serif ${active ? 'text-booklyn-amber line-through opacity-85' : 'text-booklyn-night-300 dark:text-white'}`}>
                       {ch.label}
                     </span>
-                    <p className={`text-[10px] leading-relaxed truncate max-w-full ${active ? 'text-cozy-night-100/35 dark:text-cozy-cream-200/25 line-through' : 'text-cozy-night-100/50 dark:text-cozy-cream-200/40'}`}>
+                    <p className={`text-[10px] leading-relaxed truncate max-w-full ${active ? 'text-booklyn-night-100/35 dark:text-booklyn-cream-200/25 line-through' : 'text-booklyn-night-100/50 dark:text-booklyn-cream-200/40'}`}>
                       {ch.desc}
                     </p>
                   </div>

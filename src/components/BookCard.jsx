@@ -21,21 +21,26 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
 
   const handleQuickAdd = async (e) => {
     e.stopPropagation();
-    if (isShelved) {
-      // Toggle off / remove from library
-      if (confirm(`Remove "${book.title}" from your reading shelves?`)) {
-        await deleteBook(existingBook.id);
+    try {
+      if (isShelved) {
+        // Toggle off / remove from library
+        if (confirm(`Remove "${book.title}" from your reading shelves?`)) {
+          await deleteBook(existingBook.id);
+        }
+      } else {
+        // Quick add to "Want to Read"
+        await addBook({
+          ...book,
+          status: 'to_read',
+          progress: 0,
+          rating: 0
+        });
       }
-    } else {
-      // Quick add to "Want to Read"
-      await addBook({
-        ...book,
-        status: 'to_read',
-        progress: 0,
-        rating: 0
-      });
+      if (onShelveChange) onShelveChange();
+    } catch (err) {
+      console.error(err);
+      alert(import.meta.env.DEV ? `Failed to shelve book: ${err.message}` : 'Failed to add book to library.');
     }
-    if (onShelveChange) onShelveChange();
   };
 
   return (
@@ -45,7 +50,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
       whileHover={{ y: -6, scale: 1.02 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={() => onSelect && onSelect(book)}
-      className="group relative cursor-pointer flex flex-col bg-white/5 dark:bg-cozy-night-300/40 hover:bg-white/10 border border-white/5 hover:border-cozy-amber/20 rounded-2xl p-4 overflow-hidden transition-all duration-300 shadow-lg hover:shadow-glow-amber/5"
+      className="group relative cursor-pointer flex flex-col bg-white/5 dark:bg-booklyn-night-300/40 hover:bg-white/10 border border-white/5 hover:border-booklyn-amber/20 rounded-2xl p-4 overflow-hidden transition-all duration-300 shadow-lg hover:shadow-glow-amber/5"
     >
       {/* Book Cover Container */}
       <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300">
@@ -68,7 +73,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
           className={`absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-br ${book.cover_color || 'from-indigo-600 to-indigo-950'} ${book.cover_url ? 'hidden' : 'flex'}`}
         >
           <div className="space-y-1">
-            <span className="px-2 py-0.5 text-[8px] uppercase tracking-wider font-bold rounded bg-black/30 text-cozy-cream-200 backdrop-blur-sm self-start inline-block">
+            <span className="px-2 py-0.5 text-[8px] uppercase tracking-wider font-bold rounded bg-black/30 text-booklyn-cream-200 backdrop-blur-sm self-start inline-block">
               Gutenberg Classic
             </span>
           </div>
@@ -76,7 +81,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
             <h3 className="font-serif font-bold text-sm tracking-tight text-white leading-tight line-clamp-3">
               {book.title}
             </h3>
-            <p className="text-[10px] text-cozy-cream-200/65 font-medium line-clamp-1">
+            <p className="text-[10px] text-booklyn-cream-200/65 font-medium line-clamp-1">
               {book.author}
             </p>
           </div>
@@ -89,7 +94,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
               e.stopPropagation();
               onSelect && onSelect(book);
             }}
-            className="p-3 rounded-full bg-white text-black hover:bg-cozy-amber hover:text-white transition-all transform scale-75 group-hover:scale-100 duration-300"
+            className="p-3 rounded-full bg-white text-black hover:bg-booklyn-amber hover:text-white transition-all transform scale-75 group-hover:scale-100 duration-300"
             title="View Details"
           >
             <BookOpen className="w-5 h-5" />
@@ -97,7 +102,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
           
           <button
             onClick={handleQuickAdd}
-            className={`p-3 rounded-full transition-all transform scale-75 group-hover:scale-100 duration-300 ${isShelved ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-cozy-amber text-white hover:bg-cozy-amber-dark'}`}
+            className={`p-3 rounded-full transition-all transform scale-75 group-hover:scale-100 duration-300 ${isShelved ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-booklyn-amber text-white hover:bg-booklyn-amber-dark'}`}
             title={isShelved ? 'Remove from Shelf' : 'Add to Shelf'}
           >
             {isShelved ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -114,7 +119,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
       {/* Book Metadata details */}
       <div className="mt-4 flex-1 flex flex-col justify-between">
         <div className="space-y-1">
-          <h4 className="font-serif font-bold text-sm leading-tight text-cozy-night-100 dark:text-cozy-cream-100 line-clamp-1 group-hover:text-cozy-amber transition-colors">
+          <h4 className="font-serif font-bold text-sm leading-tight text-booklyn-night-100 dark:text-booklyn-cream-100 line-clamp-1 group-hover:text-booklyn-amber transition-colors">
             {book.title}
           </h4>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-1">
@@ -124,7 +129,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
 
         <div className="mt-3 pt-3 border-t border-zinc-100 dark:border-white/5 flex items-center justify-between text-[11px] text-zinc-400">
           <div className="flex items-center gap-1.5 font-medium" title="Downloads Count">
-            <Download className="w-3.5 h-3.5 text-cozy-amber" />
+            <Download className="w-3.5 h-3.5 text-booklyn-amber" />
             <span>{formatDownloads(book.download_count)}</span>
           </div>
 

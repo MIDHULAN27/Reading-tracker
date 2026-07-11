@@ -2,6 +2,27 @@ import { create } from 'zustand';
 import { dbService } from '../services/db';
 import { useLibraryStore } from './useLibraryStore';
 import { syncManager } from '../services/syncManager';
+import { getTableMissingMessage } from '../services/tableValidator';
+
+const DB_TIMEOUT_MS = 10000; // 10 seconds
+
+const withTimeout = (promise, ms = DB_TIMEOUT_MS, label = 'Database operation') => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms / 1000}s. Please check your connection and try again.`));
+    }, ms);
+
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+};
 
 export const useProgressStore = create((set, get) => ({
   logs: [],
@@ -15,28 +36,47 @@ export const useProgressStore = create((set, get) => ({
   timerBookId: null,
 
   // User goals
-  dailyGoalMinutes: Number(localStorage.getItem('cozy_reads_daily_goal')) || 30,
+  dailyGoalMinutes: Number(localStorage.getItem('booklyn_reads_daily_goal')) || 30,
 
   fetchLogs: async (bookId = null) => {
     set({ loading: true, error: null });
     try {
-      const logs = await dbService.logs.getLogs(bookId);
+      console.info('[Booklyn Progress Store] Fetching reading sessions logs...');
+      const logs = await withTimeout(
+        dbService.logs.getLogs(bookId),
+        DB_TIMEOUT_MS,
+        'Fetch reading sessions'
+      );
       
       let goalMinutes = 30;
       try {
-        const goals = await dbService.goals.getGoals();
+        const goals = await withTimeout(
+          dbService.goals.getGoals(),
+          DB_TIMEOUT_MS,
+          'Fetch reading goals'
+        );
         if (goals && goals.daily_goal !== undefined) {
           goalMinutes = Number(goals.daily_goal);
-          localStorage.setItem('cozy_reads_daily_goal', goalMinutes);
+          localStorage.setItem('booklyn_reads_daily_goal', goalMinutes);
         }
       } catch (goalErr) {
-        console.warn('Could not sync goals from database, using cached:', goalErr.message);
-        goalMinutes = Number(localStorage.getItem('cozy_reads_daily_goal')) || 30;
+        console.warn('[Booklyn Progress Store] Could not sync goals from database, using cached:', goalErr.message);
+        goalMinutes = Number(localStorage.getItem('booklyn_reads_daily_goal')) || 30;
       }
 
-      set({ logs, dailyGoalMinutes: goalMinutes, loading: false });
+      set({ logs, dailyGoalMinutes: goalMinutes, error: null });
+      console.info('[Booklyn Progress Store] Successfully fetched reading logs:', logs.length);
     } catch (error) {
-      set({ error: error.message, loading: false });
+      console.error('[Booklyn Progress Store] Failed to fetch reading logs:', error.message);
+      const missingTableMsg = getTableMissingMessage(error.message);
+      if (missingTableMsg) {
+        // Safe fallback without setting a blocking error
+        set({ logs: [], error: null });
+      } else {
+        set({ error: error.message });
+      }
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -44,7 +84,11 @@ export const useProgressStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       if (syncManager.isOnline()) {
-        const newLog = await dbService.logs.addLog(logData);
+        const newLog = await withTimeout(
+          dbService.logs.addLog(logData),
+          DB_TIMEOUT_MS,
+          'Add reading log'
+        );
         
         // Update local logs list
         set(state => ({
@@ -55,8 +99,7 @@ export const useProgressStore = create((set, get) => ({
               books: useLibraryStore.getState().books.find(b => b.id === logData.book_id) || { title: 'Unknown', author: '' }
             },
             ...state.logs
-          ],
-          loading: false
+          ]
         }));
 
         // Re-fetch books in library store to sync progress!
@@ -76,8 +119,7 @@ export const useProgressStore = create((set, get) => ({
         };
 
         set(state => ({
-          logs: [newLog, ...state.logs],
-          loading: false
+          logs: [newLog, ...state.logs]
         }));
 
         // Optimistically update the target book progress
@@ -101,13 +143,17 @@ export const useProgressStore = create((set, get) => ({
         return newLog;
       }
     } catch (error) {
-      set({ error: error.message, loading: false });
-      throw error;
+      console.error('[Booklyn Progress Store] addLog error:', error.message);
+      const friendlyMsg = getTableMissingMessage(error.message) || error.message;
+      set({ error: friendlyMsg });
+      throw new Error(friendlyMsg);
+    } finally {
+      set({ loading: false });
     }
   },
 
   deleteLog: async (logId) => {
-    set({ error: null });
+    set({ loading: true, error: null });
     try {
       const targetLog = get().logs.find(l => l.id === logId);
 
@@ -134,14 +180,22 @@ export const useProgressStore = create((set, get) => ({
       }
 
       if (syncManager.isOnline()) {
-        await dbService.logs.deleteLog(logId);
+        await withTimeout(
+          dbService.logs.deleteLog(logId),
+          DB_TIMEOUT_MS,
+          'Delete reading session'
+        );
       } else {
         syncManager.queueMutation('logs', 'delete', { id: logId });
       }
       return true;
     } catch (error) {
-      set({ error: error.message });
-      throw error;
+      console.error('[Booklyn Progress Store] deleteLog error:', error.message);
+      const friendlyMsg = getTableMissingMessage(error.message) || error.message;
+      set({ error: friendlyMsg });
+      throw new Error(friendlyMsg);
+    } finally {
+      set({ loading: false });
     }
   },
 
@@ -182,16 +236,22 @@ export const useProgressStore = create((set, get) => ({
 
   setDailyGoal: async (minutes) => {
     const val = Number(minutes);
-    localStorage.setItem('cozy_reads_daily_goal', val);
-    set({ dailyGoalMinutes: val });
+    localStorage.setItem('booklyn_reads_daily_goal', val);
+    set({ dailyGoalMinutes: val, loading: true });
     try {
       if (syncManager.isOnline()) {
-        await dbService.goals.updateGoals({ daily_goal: val });
+        await withTimeout(
+          dbService.goals.updateGoals({ daily_goal: val }),
+          DB_TIMEOUT_MS,
+          'Update daily goal'
+        );
       } else {
         syncManager.queueMutation('goals', 'update', { daily_goal: val });
       }
     } catch (error) {
-      console.error('Failed to sync daily goal to PostgreSQL:', error);
+      console.error('[Booklyn Progress Store] Failed to sync daily goal to PostgreSQL:', error.message);
+    } finally {
+      set({ loading: false });
     }
   },
 

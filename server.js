@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { gutendexRequest, getCacheStats } from './src/services/gutendexClient.js';
 
 dotenv.config();
 
@@ -10,8 +11,6 @@ const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
-
-const GUTENDEX_URL = 'https://gutendex.com/books/';
 
 // In-Memory Cache implementation
 const memoryCache = new Map();
@@ -27,7 +26,7 @@ const cleanAuthorName = (name) => {
   return name;
 };
 
-// Map Gutendex format to Cozy Reads Unified Book Model
+// Map Gutendex format to Booklyn Unified Book Model
 const formatGutenbergBook = (doc, genreOverride = null) => {
   const formats = doc.formats || {};
   const coverUrl = formats['image/jpeg'] || '';
@@ -167,39 +166,35 @@ const CURATED_SELF_HELP = [
   }
 ];
 
-// Helper to fetch Gutenberg books with local memory caching
+// Helper to fetch Gutenberg books with Gutendex client (includes retry, timeout, logging)
 async function fetchGutenbergBooks(urlParams, cacheKey, categoryName = null) {
-  const cached = memoryCache.get(cacheKey);
-  if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-    return cached.data;
-  }
-
   try {
-    const response = await axios.get(GUTENDEX_URL, { params: urlParams });
-    if (response.data && response.data.results) {
+    console.log(`[Server] 📚 Fetching category "${categoryName || 'general'}" with params:`, urlParams);
+    
+    const response = await gutendexRequest('', urlParams, {
+      cacheKey: cacheKey,
+      timeout: 15000,
+      maxRetries: 3,
+      logPrefix: `[Server:${categoryName || 'default'}]`
+    });
+
+    if (response && response.results) {
       // Clean and normalize books
-      const normalized = response.data.results
+      const normalized = response.results
         .filter(item => item.formats && item.formats['application/epub+zip']) // Ensure reflowable EPUB is available
         .map(item => formatGutenbergBook(item, categoryName))
-        .slice(0, 28); // Fetch up to 28 unique books per endpoint to ensure client has plenty to deduplicate
-
-      memoryCache.set(cacheKey, {
-        data: normalized,
-        timestamp: Date.now()
-      });
+        .slice(0, 28); // Fetch up to 28 unique books per endpoint
+      
+      console.log(`[Server] ✅ Retrieved ${normalized.length} books for "${categoryName || 'general'}"`);
       return normalized;
     }
+    
+    console.warn(`[Server] ⚠️ No results in response for "${categoryName || 'general'}"`);
+    return [];
   } catch (err) {
-    console.error(`Gutendex fetch failed for key "${cacheKey}":`, err.message);
+    console.error(`[Server] ❌ Failed to fetch category "${categoryName || 'general'}":`, err.message);
+    return [];
   }
-
-  // If memory cache exists but is expired, return expired cache on failure
-  if (cached) {
-    console.warn(`Returning expired cache data for key "${cacheKey}" as fallback.`);
-    return cached.data;
-  }
-
-  return [];
 }
 
 // REUSABLE SERVICES
@@ -320,25 +315,157 @@ app.get('/api/books/category/:genre', async (req, res) => {
   }
 });
 
+// GET /api/books/gutenberg/search
+app.get('/api/books/gutenberg/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+
+  try {
+    console.log(`[Server:search] 📡 Searching Gutenberg for query: "${q}"`);
+    const response = await gutendexRequest('', { search: q }, {
+      cacheKey: `gutendex_search_${encodeURIComponent(q)}`,
+      timeout: 15000,
+      maxRetries: 2,
+      logPrefix: `[Server:search-${q.substring(0, 10)}]`
+    });
+    
+    res.json(response);
+  } catch (err) {
+    console.error(`[Server:search] ❌ Gutenberg search failed for "${q}":`, err.message);
+    res.status(500).json({ error: 'Gutenberg search failed', details: err.message });
+  }
+});
+
 // GET /api/books/detail/:id
 app.get('/api/books/detail/:id', async (req, res) => {
   const { id } = req.params;
-  const selfHelp = CURATED_SELF_HELP.find(b => String(b.id) === String(id));
-  if (selfHelp) return res.json(formatGutenbergBook(selfHelp, 'Self Help'));
   
+  // Check curated self-help first
+  const selfHelp = CURATED_SELF_HELP.find(b => String(b.id) === String(id));
+  if (selfHelp) {
+    console.log(`[Server:detail] ✅ Found book ${id} in Self Help collection`);
+    return res.json(formatGutenbergBook(selfHelp, 'Self Help'));
+  }
+  
+  // Try to find in cache
   for (const [_, cacheEntry] of memoryCache.entries()) {
     const found = cacheEntry.data.find(b => String(b.id) === String(id));
-    if (found) return res.json(found);
+    if (found) {
+      console.log(`[Server:detail] ✅ Found book ${id} in memory cache`);
+      return res.json(found);
+    }
   }
+  
+  // Fetch from Gutendex with retry logic
   try {
-    const response = await axios.get(`${GUTENDEX_URL}${id}/`);
-    if (response.data) return res.json(formatGutenbergBook(response.data));
+    console.log(`[Server:detail] 📡 Fetching book details for ID: ${id}`);
+    const response = await gutendexRequest(`${id}/`, {}, {
+      cacheKey: `gutendex_book_${id}`,
+      timeout: 10000,
+      maxRetries: 2,
+      logPrefix: `[Server:detail-${id}]`
+    });
+    
+    if (response && response.id) {
+      console.log(`[Server:detail] ✅ Found book ${id}: "${response.title}"`);
+      return res.json(formatGutenbergBook(response));
+    }
   } catch (err) {
-    console.error(`Gutenberg fetch detail failed for ID ${id}:`, err.message);
+    console.error(`[Server:detail] ❌ Gutendex fetch failed for ID ${id}:`, err.message);
   }
-  res.status(404).json({ error: 'Book details not found on Project Gutenberg catalog' });
+  
+  res.status(404).json({ 
+    error: 'Book details not found on Project Gutenberg catalog',
+    bookId: id,
+    suggestion: 'Try browsing categories instead'
+  });
+});
+
+// DEBUG: Health check and cache stats
+app.get('/api/health', (req, res) => {
+  const stats = getCacheStats();
+  res.json({
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    gutendex: {
+      cacheSize: stats.cacheSize,
+      inFlightRequests: stats.inFlightRequests,
+      ttlHours: Math.round(stats.ttlMs / 3600000)
+    }
+  });
+});
+
+// GET /api/epub?url=<encoded-url> - Server-side EPUB/PDF downloader and stream proxy to bypass CORS
+app.get('/api/epub', async (req, res) => {
+  const epubUrl = req.query.url;
+
+  if (!epubUrl) {
+    return res.status(400).json({ error: 'Missing EPUB URL parameter.' });
+  }
+
+  // Validate the URL structure
+  try {
+    new URL(epubUrl);
+  } catch (err) {
+    return res.status(400).json({ error: 'Invalid URL provided.' });
+  }
+
+  console.log(`[Server:epub] 📡 Proxy downloading ebook from URL: ${epubUrl}`);
+
+  try {
+    const response = await axios({
+      method: 'get',
+      url: epubUrl,
+      responseType: 'stream',
+      timeout: 20000, // 20 seconds timeout
+      headers: {
+        'User-Agent': 'Booklyn Reading Platform/1.0'
+      }
+    });
+
+    // Detect format from URL or Content-Type header
+    let contentType = 'application/epub+zip';
+    if (epubUrl.toLowerCase().includes('.pdf')) {
+      contentType = 'application/pdf';
+    } else if (response.headers['content-type']) {
+      contentType = response.headers['content-type'];
+    }
+
+    res.setHeader('Content-Type', contentType);
+
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
+
+    response.data.pipe(res);
+
+    response.data.on('end', () => {
+      console.log(`[Server:epub] ✅ Successfully streamed ebook: ${epubUrl}`);
+    });
+
+    response.data.on('error', (streamErr) => {
+      console.error(`[Server:epub] ❌ Stream read error:`, streamErr.message);
+    });
+
+  } catch (err) {
+    console.error(`[Server:epub] ❌ Failed to proxy download ebook:`, err.message);
+
+    if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+      return res.status(504).json({ error: 'Gateway Timeout: The Gutenberg server took too long to respond.' });
+    }
+
+    if (err.response) {
+      const status = err.response.status;
+      return res.status(status).json({ error: `Gutenberg server returned HTTP ${status}.` });
+    }
+
+    return res.status(502).json({ error: 'Bad Gateway: Gutenberg is unavailable or connection was refused.' });
+  }
 });
 
 app.listen(PORT, () => {
   console.log(`[Booklyn Backend] Server is running on port ${PORT}`);
 });
+

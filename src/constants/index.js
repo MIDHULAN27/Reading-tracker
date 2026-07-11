@@ -37,7 +37,7 @@ export const FALLBACK_BOOKS = [
     progress: 142,
     rating: 4.5,
     genre: 'Fiction',
-    review: 'A beautiful exploration of regrets and the lives we could have lived. Highly recommended for cozy evenings.',
+    review: 'A beautiful exploration of regrets and the lives we could have lived. Highly recommended for booklyn evenings.',
     added_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
     last_read: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), // 2 hours ago
     favorite: true
