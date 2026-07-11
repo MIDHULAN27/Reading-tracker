@@ -455,51 +455,71 @@ export default function BookDetails() {
       
       console.log('[BookDetails] ===== BOOK LOAD START =====');
       console.log('[BookDetails] Route ID:', id);
-      console.log('[BookDetails] ID Type:', typeof id);
-      console.log('[BookDetails] ID Length:', id?.length);
-      console.log('[BookDetails] ID Value:', JSON.stringify(id));
+      
+      // Helper: check if this is a UUID (Supabase library book ID)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      console.log('[BookDetails] ID format:', isUUID ? 'UUID (library book)' : 'External (Gutenberg/GB)');
       
       try {
-        // Set a 10-second timeout to prevent infinite loading
+        // Set a 30-second timeout to give fetchBooks() + retry time to complete
         timeoutId = setTimeout(() => {
           if (active) {
-            console.error('[BookDetails] ⏱️ TIMEOUT after 10 seconds - book fetch never completed');
+            console.error('[BookDetails] ⏱️ TIMEOUT after 30 seconds - book fetch never completed');
             setError('Book details took too long to load. Please try again.');
             setLoading(false);
           }
-        }, 10000);
+        }, 30000);
         
-        // First, ensure we have the latest books from the library
-        console.log('[BookDetails] Step 1: Fetching latest library books...');
-        await fetchBooks();
+        // Step 1: Check cached books first (instant)
+        const cachedBooks = useLibraryStore.getState().books;
+        let targetBook = cachedBooks.find(b => 
+          b.id === id || 
+          (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || 
+          (b.googlebooks_id && `gb-${b.googlebooks_id}` === id)
+        );
         
-        const currentBooks = useLibraryStore.getState().books;
-        console.log('[BookDetails] Library has', currentBooks.length, 'books');
+        if (targetBook) {
+          console.log('[BookDetails] ✅ Found in cached library:', targetBook.title);
+        } else {
+          // Step 2: Fetch latest from Supabase
+          console.log('[BookDetails] Not in cache, fetching library books from database...');
+          await fetchBooks();
+          
+          const currentBooks = useLibraryStore.getState().books;
+          console.log('[BookDetails] Library has', currentBooks.length, 'books');
+          
+          targetBook = currentBooks.find(b => {
+            const matches = b.id === id || 
+              (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || 
+              (b.googlebooks_id && `gb-${b.googlebooks_id}` === id);
+            if (matches) {
+              console.log('[BookDetails] Found in library by ID:', b.id, 'vs', id);
+            }
+            return matches;
+          });
+          
+          console.log('[BookDetails] Library search result:', !!targetBook, targetBook?.title);
+        }
         
-        // Try to find book in local library first
-        let targetBook = currentBooks.find(b => {
-          const matches = b.id === id || 
-            (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || 
-            (b.googlebooks_id && `gb-${b.googlebooks_id}` === id);
-          if (matches) {
-            console.log('[BookDetails] Found in library by ID:', b.id, 'vs', id);
-          }
-          return matches;
-        });
-        
-        console.log('[BookDetails] Step 2: Library search result:', !!targetBook, targetBook?.title);
-        
-        // If not in our library shelf, fetch details from Gutenberg/Gutendex catalog
+        // Step 3: If still not found
         if (!targetBook) {
-          console.log('[BookDetails] Step 3: Book not in library, fetching from external API...');
-          console.log('[BookDetails] Calling booksApi.getBook() with ID:', id);
+          if (isUUID) {
+            // UUID not found in library - this book was deleted or belongs to different account
+            console.error('[BookDetails] UUID not found in library:', id);
+            setError('This book could not be found in your library. It may have been removed.');
+            setLoading(false);
+            if (timeoutId) clearTimeout(timeoutId);
+            return;
+          }
+          
+          // For external IDs (Gutenberg/Google), fetch from catalog
+          console.log('[BookDetails] Step 3: Book not in library, fetching from external catalog...');
           try {
             targetBook = await booksApi.getBook(id);
             console.log('[BookDetails] ✅ API returned book:', targetBook?.title, targetBook?.id);
           } catch (err) {
             console.error('[BookDetails] ❌ API fetch failed:', err.message);
             console.log('[BookDetails] Creating fallback book object for ID:', id);
-            // Fallback object construction
             targetBook = {
               id: id,
               title: id.replace(/[-_]+/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
@@ -516,7 +536,7 @@ export default function BookDetails() {
             };
           }
         } else {
-          // It's already in the shelf, let's load progress configurations
+          // Found in library - load progress configurations
           console.log('[BookDetails] Step 3: Book found in library, loading configurations...');
           setTrackMode(targetBook.tracking_mode || 'pages');
           setTotalChapters(targetBook.total_chapters || 20);
@@ -534,14 +554,19 @@ export default function BookDetails() {
               ? `gb-${targetBook.googlebooks_id}` 
               : (targetBook.openlibrary_id || targetBook.id);
             
-            console.log('[BookDetails] Step 5: Fetching description for external ID:', externalId);
-            try {
-              const desc = await booksApi.getBookDescription(externalId);
-              setDescription(desc || 'A classical masterpiece curated for your reading sanctuary.');
-              console.log('[BookDetails] ✅ Description loaded');
-            } catch (descErr) {
-              console.warn('[BookDetails] Description fetch failed, using default:', descErr.message);
-              setDescription('A classical masterpiece curated for your reading sanctuary.');
+            // Skip description fetch for UUIDs (no external catalog entry)
+            if (!isUUID || targetBook.openlibrary_id || targetBook.googlebooks_id) {
+              console.log('[BookDetails] Step 5: Fetching description for external ID:', externalId);
+              try {
+                const desc = await booksApi.getBookDescription(externalId);
+                setDescription(desc || 'A classical masterpiece curated for your reading sanctuary.');
+                console.log('[BookDetails] ✅ Description loaded');
+              } catch (descErr) {
+                console.warn('[BookDetails] Description fetch failed, using default:', descErr.message);
+                setDescription('A classical masterpiece curated for your reading sanctuary.');
+              }
+            } else {
+              setDescription('A book from your personal reading library.');
             }
           } else {
             console.error('[BookDetails] ❌ No targetBook available');
