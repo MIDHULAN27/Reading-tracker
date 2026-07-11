@@ -397,6 +397,41 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/debug-gutenberg', async (req, res) => {
+  const q = req.query.q || 'The Blue Castle';
+  const url = `https://gutendex.com/books/?search=${encodeURIComponent(q)}`;
+  try {
+    const start = Date.now();
+    const fetchResp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Booklyn-Reader/1.0 (book-discovery-app)'
+      }
+    });
+    const elapsed = Date.now() - start;
+    if (!fetchResp.ok) {
+      return res.json({
+        success: false,
+        status: fetchResp.status,
+        statusText: fetchResp.statusText,
+        elapsedMs: elapsed
+      });
+    }
+    const data = await fetchResp.json();
+    return res.json({
+      success: true,
+      elapsedMs: elapsed,
+      count: data.count,
+      firstResult: data.results?.[0] || null
+    });
+  } catch (err) {
+    return res.json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 // GET /api/epub?url=<encoded-url> - Server-side EPUB/PDF downloader and stream proxy to bypass CORS
 app.get('/api/epub', async (req, res) => {
   const epubUrl = req.query.url;
