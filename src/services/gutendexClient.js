@@ -55,6 +55,66 @@ const cache = new CacheStore();
 const requestQueue = new Map(); // Track in-flight requests
 
 /**
+ * Resolves request using fallback proxies if the direct connection gets blocked (like Cloudflare 403 on Vercel).
+ */
+async function fetchWithProxyFallback(fullUrl, timeoutMs) {
+  // Try 1: Direct Fetch
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const response = await fetch(fullUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
+    clearTimeout(timeoutId);
+    if (response.ok) {
+      return await response.json();
+    }
+    throw new Error(`HTTP ${response.status}`);
+  } catch (directErr) {
+    console.warn(`[GutendexClient] Direct fetch failed (${directErr.message}), trying proxy fallback 1 (allorigins)...`);
+    
+    // Try 2: AllOrigins proxy
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(fullUrl)}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs + 5000);
+      const response = await fetch(proxyUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (response.ok) {
+        const json = await response.json();
+        if (json && json.contents) {
+          const parsed = JSON.parse(json.contents);
+          console.log('[GutendexClient] Proxy fallback 1 (allorigins) succeeded!');
+          return parsed;
+        }
+      }
+      throw new Error(`Proxy 1 failed with status ${response.status}`);
+    } catch (proxy1Err) {
+      console.warn(`[GutendexClient] Proxy fallback 1 failed (${proxy1Err.message}), trying proxy fallback 2 (codetabs)...`);
+      
+      // Try 3: CodeTabs proxy
+      try {
+        const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(fullUrl)}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs + 5000);
+        const response = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (response.ok) {
+          return await response.json();
+        }
+        throw new Error(`Proxy 2 failed with status ${response.status}`);
+      } catch (proxy2Err) {
+        console.error('[GutendexClient] All proxy fallbacks failed.');
+        throw new Error(`All Gutenberg resolve methods failed. Last error: ${proxy2Err.message}`);
+      }
+    }
+  }
+}
+
+/**
  * Make a request to Gutendex with retry logic, timeout, and detailed logging
  */
 export async function gutendexRequest(endpoint, params = {}, options = {}) {
@@ -96,25 +156,9 @@ export async function gutendexRequest(endpoint, params = {}, options = {}) {
           Object.keys(params).length > 0 ? params : '(no params)'
         );
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-
         try {
-          const response = await fetch(fullUrl, {
-            signal: controller.signal,
-            headers: {
-              'User-Agent': 'Booklyn-Reader/1.0 (book-discovery-app)'
-            }
-          });
-
-          clearTimeout(timeoutId);
+          const data = await fetchWithProxyFallback(fullUrl, timeout);
           const elapsed = Date.now() - startTime;
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const data = await response.json();
           console.log(
             `${logPrefix} ✅ Success (${elapsed}ms): ${endpoint} returned ${
               data.results?.length || 0
