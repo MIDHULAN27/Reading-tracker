@@ -25,7 +25,10 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
   const { books, addBook, updateBook } = useLibraryStore();
 
   // Find if book already exists in local shelf
-  const existingBook = books.find(b => b.title === book?.title && b.author === book?.author);
+  const existingBook = books.find(b => 
+    b.title?.toLowerCase() === book?.title?.toLowerCase() && 
+    b.author?.toLowerCase() === book?.author?.toLowerCase()
+  );
 
   // Reviews state logic
   const { 
@@ -203,15 +206,24 @@ export default function BookDetailSlideOver({ book, isOpen, onClose }) {
       return;
     }
     try {
-      const bookData = {
-        ...book,
-        status,
-        progress: status === 'completed' ? book.pages : 0,
-        tracking_mode: trackMode,
-        total_chapters: Number(totalChapters),
-        current_chapter: status === 'completed' ? Number(totalChapters) : 0
-      };
-      await addBook(bookData);
+      if (existingBook) {
+        // Move existing shelf status
+        await updateBook(existingBook.id, { 
+          status,
+          progress: status === 'completed' ? existingBook.pages : (status === 'to_read' ? 0 : existingBook.progress),
+          current_chapter: status === 'completed' ? Number(totalChapters) : (status === 'to_read' ? 0 : existingBook.current_chapter)
+        });
+      } else {
+        const bookData = {
+          ...book,
+          status,
+          progress: status === 'completed' ? book.pages : 0,
+          tracking_mode: trackMode,
+          total_chapters: Number(totalChapters),
+          current_chapter: status === 'completed' ? Number(totalChapters) : 0
+        };
+        await addBook(bookData);
+      }
       setAddedShelf(status);
     } catch (err) {
       console.error(err);
