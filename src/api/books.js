@@ -59,7 +59,10 @@ export const formatGoogleBook = (volume) => {
     epub_url: '',  // Resolved dynamically from Gutendex on read launch
     pdf_url: '',   // Resolved dynamically from Gutendex on read launch
     text_url: '',  // Resolved dynamically from Gutendex on read launch
-    source: 'Google Books'
+    html_url: '',  // Resolved dynamically
+    source: 'Google Books',
+    readability_status: 'preview',
+    primary_format: 'preview'
   };
 };
 
@@ -91,10 +94,24 @@ export const formatGutenbergBook = (doc) => {
     ? Number(Math.max(3.8, Math.min(5.0, 4.0 + (doc.download_count / 150000))).toFixed(1)) 
     : 4.2;
 
-  // Prioritize EPUB, PDF, and Plain Text download formats
+  // Prioritize EPUB, PDF, HTML, and Plain Text download formats
   const epubUrl = formats['application/epub+zip'] || '';
   const pdfUrl = formats['application/pdf'] || '';
   const textUrl = formats['text/plain; charset=utf-8'] || formats['text/plain'] || '';
+  const htmlUrl = formats['text/html'] || formats['text/html; charset=utf-8'] || '';
+
+  let primaryFormat = 'none';
+  let readabilityStatus = 'none';
+  if (epubUrl || pdfUrl) {
+    primaryFormat = epubUrl ? 'epub' : 'pdf';
+    readabilityStatus = 'full';
+  } else if (htmlUrl) {
+    primaryFormat = 'html';
+    readabilityStatus = 'full';
+  } else if (textUrl) {
+    primaryFormat = 'text';
+    readabilityStatus = 'full';
+  }
 
   return {
     id: String(doc.id),
@@ -117,7 +134,10 @@ export const formatGutenbergBook = (doc) => {
     epub_url: epubUrl,
     pdf_url: pdfUrl,
     text_url: textUrl,
-    source: 'Project Gutenberg'
+    html_url: htmlUrl,
+    source: 'Project Gutenberg',
+    readability_status: readabilityStatus,
+    primary_format: primaryFormat
   };
 };
 
@@ -497,8 +517,8 @@ export const booksApi = {
 
   /**
    * Dynamic Ebook Format Resolver using Gutendex
-   * Searches Gutendex and extracts ONLY direct readable formats (EPUB, PDF, Plain Text)
-   * Ignoring text/html links or external webpage redirects.
+   * Searches Gutendex and extracts ONLY direct readable formats (EPUB, PDF, HTML, Plain Text)
+   * Ignoring external webpage redirects.
    */
   resolveGutenbergFiles: async (title, author) => {
     if (!title) return null;
@@ -538,17 +558,19 @@ export const booksApi = {
         if (match) {
           const formats = match.formats || {};
           
-          // Priority file formats: epub -> pdf -> plain text
+          // Priority file formats: epub -> pdf -> html -> plain text
           const epubUrl = formats['application/epub+zip'] || '';
           const pdfUrl = formats['application/pdf'] || '';
           const textUrl = formats['text/plain; charset=utf-8'] || formats['text/plain'] || '';
+          const htmlUrl = formats['text/html'] || formats['text/html; charset=utf-8'] || '';
 
-          // Only return direct downloadable formats (ignore webpage links and text/html)
+          // Only return direct downloadable formats
           return {
             id: String(match.id),
             epub_url: epubUrl,
             pdf_url: pdfUrl,
-            text_url: textUrl
+            text_url: textUrl,
+            html_url: htmlUrl
           };
         }
       }
@@ -567,7 +589,8 @@ export const booksApi = {
         id: fallback.id,
         epub_url: fallback.epub_url,
         pdf_url: fallback.pdf_url,
-        text_url: fallback.text_url
+        text_url: fallback.text_url,
+        html_url: fallback.html_url || ''
       };
     }
 
@@ -701,5 +724,54 @@ export const booksApi = {
       console.error('[BooksAPI] ❌ All attempts failed for ID:', idStr);
       throw new Error(`Book not found: "${idStr}". ID format not recognized and not in offline database.`);
     }
+  },
+
+  /**
+   * Verifies readability of a book before launching the reader.
+   * Returns { status: 'full' | 'preview' | 'none', format: string }
+   */
+  verifyReadability: async (book) => {
+    if (!book) return { status: 'none', format: 'none' };
+
+    // If it already has properties from formatting (e.g. from getBook)
+    if (book.readability_status && book.primary_format) {
+      return { status: book.readability_status, format: book.primary_format };
+    }
+
+    // Google books usually have previews
+    if (book.id && String(book.id).startsWith('gb-')) {
+      return { status: 'preview', format: 'preview' };
+    }
+
+    // Direct properties check
+    if (book.epub_url || book.pdf_url) return { status: 'full', format: 'epub' };
+    if (book.html_url) return { status: 'full', format: 'html' };
+    if (book.text_url) return { status: 'full', format: 'text' };
+
+    // Try to resolve Gutenberg formats as fallback check
+    if (book.title) {
+      const files = await booksApi.resolveGutenbergFiles(book.title, book.author);
+      if (files) {
+        if (files.epub_url || files.pdf_url) return { status: 'full', format: 'epub' };
+        if (files.html_url) return { status: 'full', format: 'html' };
+        if (files.text_url) return { status: 'full', format: 'text' };
+      }
+
+      // Open Library fallback check
+      try {
+        const query = `${book.title} ${book.author || ''}`.trim().replace(/\s+/g, '+');
+        const res = await axiosInstance.get(`https://openlibrary.org/search.json?q=${query}&limit=1`);
+        if (res.data && res.data.docs && res.data.docs.length > 0) {
+          const doc = res.data.docs[0];
+          if (doc.has_fulltext && doc.key) {
+            return { status: 'preview', format: 'openlibrary', url: `https://openlibrary.org${doc.key}/read` };
+          }
+        }
+      } catch (err) {
+        console.warn('Open Library fallback check failed', err.message);
+      }
+    }
+
+    return { status: 'none', format: 'none' };
   }
 };

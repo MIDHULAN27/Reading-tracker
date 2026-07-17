@@ -81,13 +81,18 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
   const [resolveError, setResolveError] = useState(null);
   const [activeEpubUrl, setActiveEpubUrl] = useState(book.epub_url || null);
   const [activePdfUrl, setActivePdfUrl] = useState(book.pdf_url || null);
-  const [viewMode, setViewMode] = useState('epub'); // 'epub' | 'pdf' | 'google-preview'
+  const [activeHtmlUrl, setActiveHtmlUrl] = useState(book.html_url || null);
+  const [activeTextUrl, setActiveTextUrl] = useState(book.text_url || null);
+  const [activeOpenLibraryUrl, setActiveOpenLibraryUrl] = useState(book.resolved_url || null);
+  const [viewMode, setViewMode] = useState(book.primary_format && book.primary_format !== 'none' ? book.primary_format : 'epub'); // 'epub' | 'pdf' | 'html' | 'text' | 'google-preview' | 'openlibrary'
 
   // Pre-fetching and loading states to handle IndexedDB and CORS proxies
   const [loadingBook, setLoadingBook] = useState(false);
   const [loadingError, setLoadingError] = useState(null);
   const [localEpubUrl, setLocalEpubUrl] = useState(null);
   const [localPdfUrl, setLocalPdfUrl] = useState(null);
+  const [localHtmlUrl, setLocalHtmlUrl] = useState(null);
+  const [localTextContent, setLocalTextContent] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [epubRenderFailed, setEpubRenderFailed] = useState(false);
 
@@ -144,64 +149,94 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
   // 1. Dynamic format resolver on mount
   useEffect(() => {
     async function resolveFormats() {
-      // If we already have direct readable formats, we can skip resolving
-      if (book.epub_url || book.pdf_url || book.has_pdf) {
+      if (book.primary_format && book.primary_format !== 'none') {
+        if (book.primary_format === 'epub') setActiveEpubUrl(book.epub_url);
+        if (book.primary_format === 'pdf') setActivePdfUrl(book.pdf_url);
+        if (book.primary_format === 'html') setActiveHtmlUrl(book.html_url);
+        if (book.primary_format === 'text') setActiveTextUrl(book.text_url);
+        if (book.primary_format === 'openlibrary') setActiveOpenLibraryUrl(book.resolved_url);
+        setViewMode(book.primary_format);
+        return;
+      }
+
+      if (book.epub_url || book.pdf_url || book.html_url || book.text_url || book.has_pdf) {
         setActiveEpubUrl(book.epub_url);
         setActivePdfUrl(book.pdf_url);
-        setViewMode(book.has_pdf || book.pdf_url ? 'pdf' : 'epub');
+        setActiveHtmlUrl(book.html_url);
+        setActiveTextUrl(book.text_url);
+        let mode = 'epub';
+        if (book.has_pdf || book.pdf_url) mode = 'pdf';
+        else if (book.epub_url) mode = 'epub';
+        else if (book.html_url) mode = 'html';
+        else if (book.text_url) mode = 'text';
+        setViewMode(mode);
         return;
       }
 
       setResolving(true);
       setResolveError(null);
 
+      async function tryFallbackServices() {
+        const gbVolumeId = String(book.id).startsWith('gb-') ? book.id.replace('gb-', '') : null;
+        if (gbVolumeId) {
+          setViewMode('google-preview');
+          return;
+        }
+        
+        try {
+          const searchResp = await fetch(
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(book.title + ' ' + (book.author || ''))}&maxResults=1`
+          );
+          const searchData = await searchResp.json();
+          if (searchData.items && searchData.items.length > 0) {
+            const foundId = searchData.items[0].id;
+            await updateBook(book.id, { google_volume_id: foundId });
+            book.google_volume_id = foundId;
+            setViewMode('google-preview');
+            return;
+          }
+        } catch (e) {}
+
+        try {
+          const query = `${book.title} ${book.author || ''}`.trim().replace(/\s+/g, '+');
+          const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=1`);
+          const data = await res.json();
+          if (data.docs && data.docs.length > 0) {
+            const doc = data.docs[0];
+            if (doc.has_fulltext && doc.key) {
+              setActiveOpenLibraryUrl(`https://openlibrary.org${doc.key}/read`);
+              setViewMode('openlibrary');
+              return;
+            }
+          }
+        } catch (e) {}
+        
+        console.error('All 5 tiers of reading fallbacks failed.');
+        setResolveError('no-source');
+      }
+
       try {
         const result = await booksApi.resolveGutenbergFiles(book.title, book.author);
         if (result) {
-          // Cache the resolved URLs in Zustand library store
           await updateBook(book.id, {
             epub_url: result.epub_url,
             pdf_url: result.pdf_url,
-            text_url: result.text_url
+            text_url: result.text_url,
+            html_url: result.html_url
           });
 
           setActiveEpubUrl(result.epub_url);
           setActivePdfUrl(result.pdf_url);
+          setActiveHtmlUrl(result.html_url);
+          setActiveTextUrl(result.text_url);
 
-          // Priority logic: if EPUB exists, open in EPUB, else PDF
-          if (result.epub_url) {
-            setViewMode('epub');
-          } else if (result.pdf_url) {
-            setViewMode('pdf');
-          }
+          if (result.epub_url) setViewMode('epub');
+          else if (result.pdf_url) setViewMode('pdf');
+          else if (result.html_url) setViewMode('html');
+          else if (result.text_url) setViewMode('text');
+          else await tryFallbackServices();
         } else {
-          // No Gutenberg edition — fall back to Google Books embedded viewer
-          // Works for virtually all books (modern + classic) via Google's legal preview system
-          const gbVolumeId = String(book.id).startsWith('gb-')
-            ? book.id.replace('gb-', '')
-            : null;
-
-          if (gbVolumeId) {
-            setViewMode('google-preview');
-          } else {
-            // Try to search Google Books by title to get a volume ID
-            try {
-              const searchResp = await fetch(
-                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(book.title + ' ' + (book.author || ''))}&maxResults=1`
-              );
-              const searchData = await searchResp.json();
-              if (searchData.items && searchData.items.length > 0) {
-                const foundId = searchData.items[0].id;
-                await updateBook(book.id, { google_volume_id: foundId });
-                book.google_volume_id = foundId;
-                setViewMode('google-preview');
-              } else {
-                setResolveError('no-source');
-              }
-            } catch {
-              setResolveError('no-source');
-            }
-          }
+          await tryFallbackServices();
         }
       } catch (err) {
         console.error('Ebook resolution error:', err);
@@ -259,12 +294,11 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
         } catch (err) {
           console.error('Failed to pre-download EPUB:', err);
           if (active) {
-            // Auto-fallback: if this book has a Google Books ID, silently switch to the
-            // embedded Google Books viewer instead of showing a hard error screen.
-            const hasGoogleId = String(book.id).startsWith('gb-') || book.google_volume_id;
-            if (hasGoogleId) {
-              setViewMode('google-preview');
-            } else {
+            if (activePdfUrl) setViewMode('pdf');
+            else if (activeHtmlUrl) setViewMode('html');
+            else if (activeTextUrl) setViewMode('text');
+            else if (String(book.id).startsWith('gb-') || book.google_volume_id) setViewMode('google-preview');
+            else {
               setLoadingError(
                 `Could not download this EPUB through the Booklyn proxy server. ` +
                 `Reason: ${err.message}. Please try again.`
@@ -304,17 +338,63 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
         } catch (err) {
           console.error('Failed to load PDF book content:', err);
           if (active) {
-            // Auto-fallback for remote PDFs: switch to Google Books preview if available
-            const hasGoogleId = String(book.id).startsWith('gb-') || book.google_volume_id;
-            if (!book.has_pdf && hasGoogleId) {
-              setViewMode('google-preview');
-            } else {
+            if (activeHtmlUrl) setViewMode('html');
+            else if (activeTextUrl) setViewMode('text');
+            else if (String(book.id).startsWith('gb-') || book.google_volume_id) setViewMode('google-preview');
+            else {
               setLoadingError(
                 book.has_pdf
                   ? `Local PDF retrieval failed: ${err.message}`
                   : `Could not download the Gutenberg PDF through the Booklyn proxy server. Reason: ${err.message}. Please retry.`
               );
             }
+          }
+        } finally {
+          if (active) setLoadingBook(false);
+        }
+      }
+      // Mode C: HTML
+      else if (viewMode === 'html') {
+        if (!activeHtmlUrl) return;
+        if (localHtmlUrl) return;
+
+        setLoadingBook(true);
+        setLoadingError(null);
+
+        try {
+          const blob = await downloadFromBackend(activeHtmlUrl);
+          if (!active) return;
+          const localUrl = createLocalBlobUrl(blob);
+          setLocalHtmlUrl(localUrl);
+        } catch (err) {
+          console.error('Failed to pre-download HTML:', err);
+          if (active) {
+            if (activeTextUrl) setViewMode('text');
+            else if (String(book.id).startsWith('gb-') || book.google_volume_id) setViewMode('google-preview');
+            else setLoadingError(`HTML download failed: ${err.message}`);
+          }
+        } finally {
+          if (active) setLoadingBook(false);
+        }
+      }
+      // Mode D: Text
+      else if (viewMode === 'text') {
+        if (!activeTextUrl) return;
+        if (localTextContent) return;
+
+        setLoadingBook(true);
+        setLoadingError(null);
+
+        try {
+          const blob = await downloadFromBackend(activeTextUrl);
+          if (!active) return;
+          const text = await blob.text();
+          setLocalTextContent(text);
+        } catch (err) {
+          console.error('Failed to pre-download Text:', err);
+          if (active) {
+            if (String(book.id).startsWith('gb-') || book.google_volume_id) setViewMode('google-preview');
+            else setLoadingError(`Text download failed: ${err.message}`);
           }
         } finally {
           if (active) setLoadingBook(false);
@@ -791,6 +871,26 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
             </div>
           )}
 
+          {/* C3. HTML Viewer Viewport */}
+          {!resolving && !isFormatUnavailable && !loadingBook && !loadingError && viewMode === 'html' && localHtmlUrl && (
+            <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm relative border border-black/5 dark:border-white/5 bg-white">
+              <iframe
+                src={localHtmlUrl}
+                title={`Reading: ${book.title}`}
+                className="w-full h-full border-0"
+              />
+            </div>
+          )}
+
+          {/* C4. Plain Text Viewer Viewport */}
+          {!resolving && !isFormatUnavailable && !loadingBook && !loadingError && viewMode === 'text' && localTextContent && (
+            <div className={`w-full h-full rounded-2xl overflow-auto custom-scrollbar p-8 shadow-sm relative border border-black/5 dark:border-white/5 ${theme === 'dark' ? 'bg-slate-900' : theme === 'sepia' ? 'bg-[#f5f1de]' : 'bg-white'}`}>
+               <pre className={`font-serif whitespace-pre-wrap text-sm md:text-base leading-relaxed max-w-3xl mx-auto ${textColorClass}`}>
+                 {localTextContent}
+               </pre>
+            </div>
+          )}
+
           {/* D. Native PDF Document Viewer (No iframe, no redirect) */}
           {!resolving && !isFormatUnavailable && !loadingBook && !loadingError && viewMode === 'pdf' && localPdfUrl && (
             <div ref={pdfContainerRef} className="w-full h-full flex flex-col bg-slate-900/5 dark:bg-black/25 rounded-2xl overflow-hidden border border-black/5 dark:border-white/5 relative">
@@ -908,9 +1008,32 @@ export default function Reader({ book, onClose, onProgressUpdate }) {
               />
             </div>
           )}
-        </div>
 
-        {/* Right Area: Reflections Journal */}
+          {/* F. Open Library Viewer */}
+          {!resolving && viewMode === 'openlibrary' && activeOpenLibraryUrl && (
+            <div className="w-full h-full flex flex-col rounded-2xl overflow-hidden border border-black/5 dark:border-white/5 relative">
+              <div className={`h-11 px-4 flex items-center justify-between text-xs border-b ${
+                theme === 'dark'
+                  ? 'bg-slate-900 border-white/10 text-slate-300'
+                  : theme === 'sepia'
+                  ? 'bg-[#f5f1de] border-[#e5dfc9] text-[#5c4a37]'
+                  : 'bg-white border-slate-100 text-slate-600'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-booklyn-amber" />
+                  <span className="font-bold tracking-wide uppercase text-[10px]">Open Library Viewer</span>
+                </div>
+              </div>
+              <iframe
+                src={activeOpenLibraryUrl}
+                title={`Reading: ${book.title}`}
+                className="flex-1 w-full border-0"
+              />
+            </div>
+          )}
+        </div>
+        
+        {/* Right Area: Session Notes & Utilities (Desktop only) */}
         {!isFormatUnavailable && (
           <aside className={`w-full md:w-80 border-t md:border-t-0 md:border-l p-5 flex flex-col h-72 md:h-full transition-all duration-300 ${
             theme === 'dark' ? 'bg-[#060a12] border-white/5 text-white' : theme === 'sepia' ? 'bg-[#f5f1de]/70 border-[#e5dfc9] text-[#433422]' : 'bg-white border-slate-200 text-slate-800'

@@ -1,138 +1,104 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { booksApi } from '../api/booksApi';
 
+// Internal debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  // We use standard React patterns instead of useEffect to avoid
+  // extra renders, but useEffect is the standard for debounce
+  import('react').then(({ useEffect }) => {
+    useEffect(() => {
+      const timer = setTimeout(() => setDebouncedValue(value), delay);
+      return () => clearTimeout(timer);
+    }, [value, delay]);
+  });
+  
+  return debouncedValue;
+}
+
 export default function useBooks() {
-  const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState('');
-  const [hasMore, setHasMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [searchSource, setSearchSource] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Debounce the search query by 500ms
+  const debouncedQuery = useDebounce(searchQuery, 500);
 
-  // Trending & Recommended states
-  const [trendingBooks, setTrendingBooks] = useState([]);
-  const [loadingTrending, setLoadingTrending] = useState(false);
-  const [recommendedBooks, setRecommendedBooks] = useState([]);
-  const [loadingRecommended, setLoadingRecommended] = useState(false);
+  // 1. Trending Books Query
+  const {
+    data: trendingBooks = [],
+    isLoading: loadingTrending,
+    refetch: fetchTrending,
+  } = useQuery({
+    queryKey: ['trendingBooks'],
+    queryFn: () => booksApi.getTrendingBooks(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 
-  // Keep track of the active search query to prevent race conditions
-  const activeQueryRef = useRef('');
-  const debounceTimeoutRef = useRef(null);
+  // 2. Recommended Classics Query
+  const {
+    data: recommendedData,
+    isLoading: loadingRecommended,
+    refetch: fetchRecommendedClassics,
+  } = useQuery({
+    queryKey: ['recommendedClassics'],
+    queryFn: () => booksApi.searchBooks('subject:classic+highly+rated', 1, 10),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+  
+  const recommendedBooks = recommendedData?.books || [];
 
-  // Fetch trending books list
-  const fetchTrending = useCallback(async () => {
-    setLoadingTrending(true);
-    try {
-      const data = await booksApi.getTrendingBooks();
-      setTrendingBooks(data || []);
-    } catch (err) {
-      console.error('Failed to fetch trending books:', err);
-    } finally {
-      setLoadingTrending(false);
-    }
+  // 3. Search Infinite Query
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+    isFetchingNextPage: loadingMore,
+    error: searchError,
+    hasNextPage: hasMore,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['searchBooks', debouncedQuery],
+    queryFn: async ({ pageParam = 1 }) => {
+      if (!debouncedQuery || debouncedQuery.trim() === '') {
+        return { books: [], source: '' };
+      }
+      return booksApi.searchBooks(debouncedQuery, pageParam, 15);
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage.books || lastPage.books.length < 15) return undefined;
+      return allPages.length + 1;
+    },
+    enabled: !!debouncedQuery && debouncedQuery.trim() !== '',
+    staleTime: 1000 * 60 * 5, // 5 mins
+  });
+
+  // Flatten the infinite pages into a single books array
+  const books = useMemo(() => {
+    return searchData ? searchData.pages.flatMap((page) => page.books) : [];
+  }, [searchData]);
+
+  const searchSource = searchData?.pages[0]?.source || '';
+  const error = searchError ? searchError.message : '';
+  const loading = searchLoading && !!debouncedQuery;
+
+  // Compatibility functions for existing UI
+  const searchBooksDebounced = useCallback((query) => {
+    setSearchQuery(query);
   }, []);
 
-  // Fetch recommended masterpieces
-  const fetchRecommendedClassics = useCallback(async () => {
-    setLoadingRecommended(true);
-    try {
-      const response = await booksApi.searchBooks('subject:classic+highly+rated', 1, 10);
-      setRecommendedBooks(response.books || []);
-    } catch (err) {
-      console.error('Failed to fetch classics masterpieces:', err);
-    } finally {
-      setLoadingRecommended(false);
-    }
-  }, []);
-
-  // Reset search results
   const resetSearch = useCallback(() => {
-    setBooks([]);
-    setPage(1);
-    setHasMore(false);
-    setSearchSource('');
-    setError('');
-    activeQueryRef.current = '';
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
+    setSearchQuery('');
   }, []);
 
-  // Execute direct search
-  const searchBooks = useCallback(async (query, pageNum = 1, limit = 15) => {
-    if (!query || query.trim() === '') {
-      resetSearch();
-      return;
+  const loadNextPage = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      fetchNextPage();
     }
+  }, [hasMore, loadingMore, fetchNextPage]);
 
-    const isFirstPage = pageNum === 1;
-    if (isFirstPage) {
-      setLoading(true);
-      setError('');
-    } else {
-      setLoadingMore(true);
-    }
-
-    activeQueryRef.current = query;
-
-    try {
-      const response = await booksApi.searchBooks(query, pageNum, limit);
-      
-      // Prevent updating state if another search was triggered in the meantime
-      if (activeQueryRef.current !== query) return;
-
-      if (isFirstPage) {
-        setBooks(response.books || []);
-        setPage(1);
-      } else {
-        setBooks((prev) => [...prev, ...response.books]);
-        setPage(pageNum);
-      }
-
-      setSearchSource(response.source || '');
-      setHasMore(response.books && response.books.length >= limit);
-    } catch (err) {
-      if (activeQueryRef.current === query) {
-        setError(err.message || 'Book index directory encountered an unexpected error. Please retry.');
-      }
-    } finally {
-      if (activeQueryRef.current === query) {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    }
-  }, [resetSearch]);
-
-  // Load next page for infinite scroll
-  const loadNextPage = useCallback(async (limit = 15) => {
-    if (loading || loadingMore || !hasMore || !activeQueryRef.current) return;
-    await searchBooks(activeQueryRef.current, page + 1, limit);
-  }, [loading, loadingMore, hasMore, page, searchBooks]);
-
-  // Debounced search trigger
-  const searchBooksDebounced = useCallback((query, delay = 500) => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    if (!query || query.trim() === '') {
-      resetSearch();
-      return;
-    }
-
-    debounceTimeoutRef.current = setTimeout(() => {
-      searchBooks(query, 1, 15);
-    }, delay);
-  }, [searchBooks, resetSearch]);
-
-  // Clean up debounce timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
+  // Direct search pass-through for legacy non-debounced usage if needed
+  const searchBooks = useCallback(async (query) => {
+    setSearchQuery(query);
   }, []);
 
   return {
@@ -141,7 +107,7 @@ export default function useBooks() {
     loadingMore,
     error,
     hasMore,
-    page,
+    page: searchData?.pages.length || 1,
     searchSource,
     trendingBooks,
     loadingTrending,

@@ -1,10 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Download, Languages, BookOpen, Heart, Plus, Check } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLibraryStore } from '../store/useLibraryStore';
+import { booksApi } from '../api/booksApi';
 
 export default function BookCard({ book, onSelect, onShelveChange }) {
   const { books, addBook, deleteBook } = useLibraryStore();
+  const queryClient = useQueryClient();
   
   // Find if book already exists in local shelf
   const existingBook = books.find(b => b.id === book.id || (b.title === book.title && b.author === book.author));
@@ -43,6 +46,24 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
     }
   };
 
+  const handlePrefetch = () => {
+    const externalId = book.googlebooks_id 
+      ? `gb-${book.googlebooks_id}` 
+      : (book.openlibrary_id || book.id);
+
+    queryClient.prefetchQuery({
+      queryKey: ['bookDetails', String(book.id)],
+      queryFn: () => booksApi.getBook(book.id),
+      staleTime: 1000 * 60 * 60,
+    });
+
+    queryClient.prefetchQuery({
+      queryKey: ['bookDescription', externalId],
+      queryFn: () => booksApi.getBookDescription(externalId),
+      staleTime: 1000 * 60 * 60,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -50,6 +71,7 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
       whileHover={{ y: -6, scale: 1.02 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={() => onSelect && onSelect(book)}
+      onMouseEnter={handlePrefetch}
       className="group relative cursor-pointer flex flex-col bg-white/5 dark:bg-booklyn-night-300/40 hover:bg-white/10 border border-white/5 hover:border-booklyn-amber/20 rounded-2xl p-4 overflow-hidden transition-all duration-300 shadow-lg hover:shadow-glow-amber/5"
     >
       {/* Book Cover Container */}
@@ -114,6 +136,16 @@ export default function BookCard({ book, onSelect, onShelveChange }) {
           <Languages className="w-2.5 h-2.5" />
           {book.language || 'EN'}
         </div>
+
+        {/* Readability Badge */}
+        {book.readability_status && (
+          <div className={`absolute top-2 left-2 px-1.5 py-0.5 rounded backdrop-blur-md border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1
+            ${book.readability_status === 'full' ? 'bg-emerald-500/80' : 
+              book.readability_status === 'preview' ? 'bg-booklyn-amber/80' : 'bg-red-500/80'}`}>
+            {book.readability_status === 'full' ? 'Full Text' : 
+             book.readability_status === 'preview' ? 'Preview' : 'Not Available'}
+          </div>
+        )}
       </div>
 
       {/* Book Metadata details */}

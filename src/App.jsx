@@ -31,9 +31,11 @@ function AppContent() {
   const hydrated = useSidebarStore((state) => state.hydrated);
   const tablesReady = useAuthStore((state) => state.tablesReady);
   const isConfigured = useAuthStore((state) => state.isConfigured);
+  const databaseLoading = useAuthStore((state) => state.databaseLoading);
 
   // Hydration shield to prevent hydration mismatches and uninitialized rendering states
-  if (!initialized || !hydrated) {
+  // We also wait for database validation to complete to prevent UI flicker
+  if (!initialized || !hydrated || databaseLoading) {
     return <LoadingScreen />;
   }
 
@@ -147,19 +149,34 @@ function AppContent() {
   );
 }
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 15 * 60 * 1000, // 15 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
 function App() {
   return (
-    <ThemeProvider>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AuthProvider>
-            <SidebarProvider>
-              <AppContent />
-            </SidebarProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <AuthProvider>
+              <SidebarProvider>
+                <AppContent />
+              </SidebarProvider>
+            </AuthProvider>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -14,8 +14,25 @@ import {
   X, Filter, Loader2, Sparkles, Quote, Award, Unlock, ExternalLink, Download
 } from 'lucide-react';
 
+import { useQueries } from '@tanstack/react-query';
+
 const HOT_SEARCHES = ['The Hobbit', 'Atomic Habits', 'Project Hail Mary', 'Pride and Prejudice', 'Dune'];
 const POPULAR_GENRES = ['Fiction', 'Fantasy', 'Sci-Fi', 'Mystery', 'Biography', 'Self-Help', 'Classic'];
+
+const categoryDefinitions = [
+  { key: 'trending', endpoint: 'trending', genre: null, title: 'Trending Reads' },
+  { key: 'free', endpoint: 'free', genre: null, title: 'Free Classics' },
+  { key: 'classics', endpoint: 'classics', genre: null, title: 'Timeless Masterpieces' },
+  { key: 'fantasy', endpoint: null, genre: 'Fantasy', title: 'Fantasy & Magic' },
+  { key: 'scifi', endpoint: null, genre: 'Sci-Fi', title: 'Science Fiction' },
+  { key: 'mystery', endpoint: null, genre: 'Mystery', title: 'Mystery & Detective' },
+  { key: 'romance', endpoint: null, genre: 'Romance', title: 'Romance Classics' },
+  { key: 'philosophy', endpoint: null, genre: 'Philosophy', title: 'Philosophy' },
+  { key: 'horror', endpoint: null, genre: 'Horror', title: 'Horror' },
+  { key: 'adventure', endpoint: null, genre: 'Adventure', title: 'Adventure' },
+  { key: 'selfHelp', endpoint: null, genre: 'Self-Help', title: 'Self Help' },
+  { key: 'historical', endpoint: null, genre: 'Historical-Fiction', title: 'Historical Fiction' },
+];
 
 export default function Discover() {
   const navigate = useNavigate();
@@ -27,21 +44,31 @@ export default function Discover() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
 
-  // Spotify/Netflix 12 book categories
-  const [categoriesData, setCategoriesData] = useState({
-    trending: { title: 'Trending Reads', books: [], loading: true },
-    free: { title: 'Free Classics', books: [], loading: true },
-    classics: { title: 'Timeless Masterpieces', books: [], loading: true },
-    fantasy: { title: 'Fantasy & Magic', books: [], loading: true },
-    scifi: { title: 'Science Fiction', books: [], loading: true },
-    mystery: { title: 'Mystery & Detective', books: [], loading: true },
-    romance: { title: 'Romance Classics', books: [], loading: true },
-    philosophy: { title: 'Philosophy', books: [], loading: true },
-    horror: { title: 'Horror', books: [], loading: true },
-    adventure: { title: 'Adventure', books: [], loading: true },
-    selfHelp: { title: 'Self Help', books: [], loading: true },
-    historical: { title: 'Historical Fiction', books: [], loading: true },
+  // React Query parallel fetch for all categories
+  const categoryQueries = useQueries({
+    queries: categoryDefinitions.map((cat) => ({
+      queryKey: ['category', cat.key],
+      queryFn: async () => {
+        const url = cat.genre ? `/api/books/category/${encodeURIComponent(cat.genre)}` : `/api/books/${cat.endpoint}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to load ${cat.key}`);
+        return response.json();
+      },
+      staleTime: 1000 * 60 * 60, // 1 hour caching
+    }))
   });
+
+  const categoriesData = React.useMemo(() => {
+    const data = {};
+    categoryDefinitions.forEach((cat, index) => {
+      data[cat.key] = {
+        title: cat.title,
+        books: categoryQueries[index].data || [],
+        loading: categoryQueries[index].isLoading
+      };
+    });
+    return data;
+  }, [categoryQueries]);
 
   const scrollRefs = useRef({});
   
@@ -96,45 +123,7 @@ export default function Discover() {
     fetchTrending();
     fetchRecommendedClassics();
 
-    // Concurrently load the 10 legal open-source book categories from our backend API
-    async function loadCategories() {
-      const fetchAndSet = async (key, endpoint, genre = null) => {
-        try {
-          const url = genre ? `/api/books/category/${encodeURIComponent(genre)}` : `/api/books/${endpoint}`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            setCategoriesData(prev => ({
-              ...prev,
-              [key]: { ...prev[key], books: data, loading: false }
-            }));
-          } else {
-            throw new Error(`Failed to load ${key}`);
-          }
-        } catch (err) {
-          console.warn(`Failed to fetch category ${key}:`, err);
-          setCategoriesData(prev => ({
-            ...prev,
-            [key]: { ...prev[key], books: [], loading: false }
-          }));
-        }
-      };
-
-      fetchAndSet('trending', 'trending');
-      fetchAndSet('free', 'free');
-      fetchAndSet('classics', 'classics');
-      fetchAndSet('fantasy', null, 'Fantasy');
-      fetchAndSet('scifi', null, 'Sci-Fi');
-      fetchAndSet('mystery', null, 'Mystery');
-      fetchAndSet('romance', null, 'Romance');
-      fetchAndSet('philosophy', null, 'Philosophy');
-      fetchAndSet('horror', null, 'Horror');
-      fetchAndSet('adventure', null, 'Adventure');
-      fetchAndSet('selfHelp', null, 'Self-Help');
-      fetchAndSet('historical', null, 'Historical-Fiction');
-    }
-
-    loadCategories();
+    // The categories are now loaded in parallel via useQueries above.
   }, [fetchTrending, fetchRecommendedClassics]);
 
   // Handle auto-completion suggestions in real-time as user types

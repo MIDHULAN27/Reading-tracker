@@ -12,6 +12,7 @@ import { useLibraryStore } from '../store/useLibraryStore';
 import { useProgressStore } from '../store/useProgressStore';
 import { useReviewStore } from '../store/useReviewStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useQuery } from '@tanstack/react-query';
 import RatingPicker from '../components/RatingPicker';
 import LogSessionModal from '../components/LogSessionModal';
 import { pdfStore } from '../services/pdfStore';
@@ -78,11 +79,55 @@ export default function BookDetails() {
   const guard = useGuestGuard();
   const currentUserId = user?.id || 'guest-booklyn-reader';
 
-  // Detail states
-  const [bookDetails, setBookDetails] = useState(null);
-  const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  // Detail states via React Query
+  const { data: bookDetails, isLoading: isBookLoading, error: bookQueryError } = useQuery({
+    queryKey: ['bookDetails', id, authInitialized],
+    queryFn: async () => {
+      if (!authInitialized) throw new Error("Auth not initialized");
+      const isUUIDFormat = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      
+      const cachedBooks = useLibraryStore.getState().books;
+      let targetBook = cachedBooks.find(b => b.id === id || (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || (b.googlebooks_id && `gb-${b.googlebooks_id}` === id));
+      
+      if (!targetBook) {
+        await fetchBooks();
+        targetBook = useLibraryStore.getState().books.find(b => b.id === id || (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || (b.googlebooks_id && `gb-${b.googlebooks_id}` === id));
+      }
+      
+      if (!targetBook) {
+        if (isUUIDFormat) throw new Error('This book could not be found in your library. It may have been removed.');
+        targetBook = await booksApi.getBook(id);
+      } else {
+        setTrackMode(targetBook.tracking_mode || 'pages');
+        setTotalChapters(targetBook.total_chapters || 20);
+      }
+
+      const readability = await booksApi.verifyReadability(targetBook);
+      targetBook.readability_status = readability.status;
+      targetBook.primary_format = readability.format;
+      if (readability.url) targetBook.resolved_url = readability.url;
+      
+      return targetBook;
+    },
+    enabled: authInitialized,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  const externalId = bookDetails?.googlebooks_id ? `gb-${bookDetails.googlebooks_id}` : (bookDetails?.openlibrary_id || bookDetails?.id);
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  const needsDescription = !isUUID || bookDetails?.openlibrary_id || bookDetails?.googlebooks_id;
+
+  const { data: descriptionQueryData } = useQuery({
+    queryKey: ['bookDescription', externalId],
+    queryFn: () => booksApi.getBookDescription(externalId),
+    enabled: !!bookDetails && !!needsDescription && authInitialized,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  const description = needsDescription ? (descriptionQueryData || 'A classical masterpiece curated for your reading sanctuary.') : 'A book from your personal reading library.';
+  const loading = isBookLoading || !authInitialized;
+  const error = bookQueryError ? bookQueryError.message : '';
+
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
   // Local shelve settings
@@ -444,181 +489,13 @@ export default function BookDetails() {
     }
   };
 
-  // Fetch book details & library shelf sync WITH TIMEOUT PROTECTION
+  // Fetch reviews and logs
   useEffect(() => {
-    let active = true;
-    let timeoutId = null;
-    
-    // Don't start loading until auth has been initialized.
-    // On page refresh, Supabase takes time to restore the session.
-    // If we call getBooks() before auth is ready, getUser() returns null
-    // and the library comes back empty, making UUID books unfindable.
-    if (!authInitialized) {
-      setLoading(true);
-      return;
+    if (authInitialized) {
+      fetchReviews(id, 'helpful', 1, false);
+      fetchLogs(id);
     }
-    
-    async function loadBookData() {
-      setLoading(true);
-      setError('');
-      
-      console.log('[BookDetails] ===== BOOK LOAD START =====');
-      console.log('[BookDetails] Route ID:', id);
-      console.log('[BookDetails] Auth initialized:', authInitialized, '| User:', user?.id || 'guest');
-      
-      // Helper: check if this is a UUID (Supabase library book ID)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      console.log('[BookDetails] ID format:', isUUID ? 'UUID (library book)' : 'External (Gutenberg/GB)');
-      
-      // Set a 25-second timeout ONLY for the book-finding phase (NOT description fetch)
-      timeoutId = setTimeout(() => {
-        if (active) {
-          console.error('[BookDetails] ⏱️ TIMEOUT after 25 seconds finding book');
-          setError('Book details took too long to load. Please try again.');
-          setLoading(false);
-        }
-      }, 25000);
-      
-      try {
-        // Step 1: Check cached books first (instant)
-        const cachedBooks = useLibraryStore.getState().books;
-        let targetBook = cachedBooks.find(b => 
-          b.id === id || 
-          (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || 
-          (b.googlebooks_id && `gb-${b.googlebooks_id}` === id)
-        );
-        
-        if (targetBook) {
-          console.log('[BookDetails] ✅ Found in cached library:', targetBook.title);
-        } else {
-          // Step 2: Fetch latest from Supabase
-          console.log('[BookDetails] Not in cache, fetching library books from database...');
-          await fetchBooks();
-          
-          const currentBooks = useLibraryStore.getState().books;
-          console.log('[BookDetails] Library has', currentBooks.length, 'books');
-          
-          targetBook = currentBooks.find(b => {
-            const matches = b.id === id || 
-              (b.openlibrary_id && String(b.openlibrary_id) === String(id)) || 
-              (b.googlebooks_id && `gb-${b.googlebooks_id}` === id);
-            if (matches) {
-              console.log('[BookDetails] Found in library by ID:', b.id, 'vs', id);
-            }
-            return matches;
-          });
-          
-          console.log('[BookDetails] Library search result:', !!targetBook, targetBook?.title);
-        }
-        
-        // Step 3: If still not found
-        if (!targetBook) {
-          if (isUUID) {
-            // UUID not found in library - deleted or belongs to different account
-            console.error('[BookDetails] UUID not found in library:', id);
-            setError('This book could not be found in your library. It may have been removed.');
-            return;
-          }
-          
-          // For external IDs (Gutenberg/Google), fetch from catalog
-          console.log('[BookDetails] Step 3: Book not in library, fetching from external catalog...');
-          try {
-            targetBook = await booksApi.getBook(id);
-            console.log('[BookDetails] ✅ API returned book:', targetBook?.title, targetBook?.id);
-          } catch (err) {
-            console.error('[BookDetails] ❌ API fetch failed:', err.message);
-            targetBook = {
-              id: id,
-              title: id.replace(/[-_]+/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-              author: 'Unknown Author',
-              cover_url: '',
-              cover_color: 'from-amber-600 to-amber-950',
-              pages: 250,
-              genre: 'Fiction',
-              publish_year: 'Classic',
-              publisher: 'Project Gutenberg',
-              language: 'English',
-              ratings_average: 4.2,
-              source: 'Fallback (Error Loading)'
-            };
-          }
-        } else {
-          // Found in library - load progress configurations
-          console.log('[BookDetails] Step 3: Book found in library, loading configurations...');
-          setTrackMode(targetBook.tracking_mode || 'pages');
-          setTotalChapters(targetBook.total_chapters || 20);
-        }
-
-        if (!active || !targetBook) {
-          if (!targetBook) setError('Could not locate book catalog details.');
-          return;
-        }
-
-        // ✅ STEP 4: Book found — show it IMMEDIATELY, clear loading state
-        console.log('[BookDetails] ✅ Book found, rendering:', targetBook.title);
-        setBookDetails(targetBook);
-        if (timeoutId) clearTimeout(timeoutId); // Stop timeout — book is found
-        setLoading(false);
-        console.log('[BookDetails] ===== BOOK LOAD COMPLETE =====');
-
-        // STEP 5: Fetch description in background — non-blocking, won't affect loading state
-        const externalId = targetBook.googlebooks_id 
-          ? `gb-${targetBook.googlebooks_id}` 
-          : (targetBook.openlibrary_id || targetBook.id);
-        
-        const needsDescription = !isUUID || targetBook.openlibrary_id || targetBook.googlebooks_id;
-        
-        if (needsDescription && active) {
-          console.log('[BookDetails] Fetching description in background for:', externalId);
-          
-          // Wrap description fetch in an 8-second timeout to prevent indefinite hang
-          const descTimeout = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Description fetch timed out')), 8000)
-          );
-          
-          Promise.race([booksApi.getBookDescription(externalId), descTimeout])
-            .then(desc => {
-              if (active) {
-                setDescription(desc || 'A classical masterpiece curated for your reading sanctuary.');
-                console.log('[BookDetails] ✅ Description loaded in background');
-              }
-            })
-            .catch(descErr => {
-              console.warn('[BookDetails] Background description fetch failed:', descErr.message);
-              if (active) {
-                setDescription('A classical masterpiece curated for your reading sanctuary.');
-              }
-            });
-        } else if (active) {
-          setDescription('A book from your personal reading library.');
-        }
-
-      } catch (err) {
-        if (active) {
-          console.error('[BookDetails] ❌ UNEXPECTED ERROR:', err.message, err.stack);
-          setError(err.message || 'Failed to fetch detailed book catalog data.');
-        }
-      } finally {
-        // Only clear timeout + loading if we haven't already done so above
-        if (timeoutId) clearTimeout(timeoutId);
-        if (active && loading) {
-          setLoading(false);
-          console.log('[BookDetails] ===== BOOK LOAD COMPLETE (via finally) =====');
-        }
-      }
-
-    }
-
-    loadBookData();
-    fetchReviews(id, 'helpful', 1, false);
-    fetchLogs(id);
-
-    return () => {
-      active = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  // authInitialized is critical: ensures we re-run once auth session is restored after page refresh
-  }, [id, authInitialized, fetchBooks, fetchReviews, fetchLogs]);
+  }, [id, authInitialized, fetchReviews, fetchLogs]);
 
   // Sync timers
   useEffect(() => {
@@ -1033,13 +910,30 @@ export default function BookDetails() {
                     >
                       <Plus className="w-3.5 h-3.5" /> Want to Read
                     </button>
-                    <button 
-                      onClick={() => handleAddToLibrary('reading')}
-                      disabled={updatingShelf}
-                      className="px-4 py-2 bg-booklyn-amber-dark hover:brightness-110 text-white font-semibold text-xs border-l border-white/10 transition-colors flex items-center gap-1.5"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" /> Read Now
-                    </button>
+                    {bookDetails?.readability_status === 'full' ? (
+                      <button 
+                        onClick={() => handleAddToLibrary('reading')}
+                        disabled={updatingShelf}
+                        className="px-4 py-2 bg-booklyn-amber-dark hover:brightness-110 text-white font-semibold text-xs border-l border-white/10 transition-colors flex items-center gap-1.5"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" /> Read Now
+                      </button>
+                    ) : bookDetails?.readability_status === 'preview' ? (
+                      <button 
+                        onClick={() => handleAddToLibrary('reading')}
+                        disabled={updatingShelf}
+                        className="px-4 py-2 bg-booklyn-amber hover:brightness-110 text-white font-semibold text-xs border-l border-white/10 transition-colors flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Preview
+                      </button>
+                    ) : (
+                      <button 
+                        disabled={true}
+                        className="px-4 py-2 bg-booklyn-night-200 text-zinc-400 font-semibold text-xs border-l border-white/10 transition-colors flex items-center gap-1.5 cursor-not-allowed opacity-50"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" /> Not Available
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1067,19 +961,26 @@ export default function BookDetails() {
 
                   {existingBook.status === 'reading' && (
                     <div className="flex items-end h-full pt-4 gap-3 flex-wrap">
-                      <button 
-                        onClick={() => {
-                          if (guard('Reader Sanctuary')) {
-                            showLocalToast('✗ User not authenticated', 'error');
-                            return;
-                          }
-                          navigate(`/read/${id}`, { state: { fromBookDetails: true } });
-                          startReadingSessionTimer();
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-800 hover:brightness-110 text-white font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all"
-                      >
-                        <Book className="w-3.5 h-3.5" /> Enter Reading Sanctuary
-                      </button>
+                      {bookDetails?.readability_status !== 'none' ? (
+                        <button 
+                          onClick={() => {
+                            if (guard('Reader Sanctuary')) {
+                              showLocalToast('✗ User not authenticated', 'error');
+                              return;
+                            }
+                            navigate(`/read/${id}`, { state: { fromBookDetails: true } });
+                            startReadingSessionTimer();
+                          }}
+                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-800 hover:brightness-110 text-white font-bold text-xs flex items-center gap-2 shadow-lg active:scale-95 transition-all"
+                        >
+                          <Book className="w-3.5 h-3.5" /> 
+                          {bookDetails?.readability_status === 'preview' ? 'Preview Sanctuary' : 'Enter Reading Sanctuary'}
+                        </button>
+                      ) : (
+                        <div className="px-5 py-2.5 rounded-xl bg-booklyn-night-200 border border-white/5 text-zinc-400 font-bold text-xs flex items-center gap-2">
+                          <AlertCircle className="w-3.5 h-3.5" /> Not Available to Read
+                        </div>
+                      )}
                       {isTimerRunningOnThisBook ? (
                         <button 
                           onClick={handleStopTimer}

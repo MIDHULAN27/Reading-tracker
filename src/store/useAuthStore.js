@@ -81,13 +81,14 @@ export const useAuthStore = create(
       envIssues: [],
       tablesReady: false,
       missingTables: [],
+      databaseLoading: true,
 
   init: async () => {
     if (get().unsubscribe) {
-      set({ loading: false, initialized: true });
+      set({ loading: false, initialized: true, databaseLoading: false });
       return;
     }
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, databaseLoading: true });
 
     console.info('[Booklyn Auth] Initializing authentication state...');
     
@@ -103,7 +104,8 @@ export const useAuthStore = create(
       set({ 
         user: null, 
         initialized: true, 
-        loading: false 
+        loading: false,
+        databaseLoading: false
       });
       return;
     }
@@ -128,12 +130,21 @@ export const useAuthStore = create(
         set({ tablesReady: false, missingTables: [] });
       } else {
         console.info('[Booklyn Auth] PostgreSQL Connection verified. Reading schema tables active.');
-        const validation = await validateTables();
-        set({ 
-          tablesReady: validation.allTablesReady, 
-          missingTables: validation.missingTables 
-        });
+        
+        // Use cached validation if already verified
+        if (!get().tablesReady) {
+          const validation = await validateTables();
+          set({ 
+            tablesReady: validation.allTablesReady, 
+            missingTables: validation.missingTables 
+          });
+        } else {
+          console.info('[Booklyn Auth] Database tables already validated (cached).');
+        }
       }
+
+      // Database validation is complete
+      set({ databaseLoading: false });
 
       // 2. Recover existing active session if available (with timeout)
       let session = null;
@@ -170,14 +181,14 @@ export const useAuthStore = create(
       set({ unsubscribe: () => subscription.unsubscribe() });
     } catch (error) {
       console.error('[Booklyn Auth] Error during initialization:', error.message);
-      set({ error: getFriendlyAuthError(error), user: null, initialized: true, loading: false });
+      set({ error: getFriendlyAuthError(error), user: null, initialized: true, loading: false, databaseLoading: false });
     } finally {
-      set({ loading: false, initialized: true });
+      set({ loading: false, initialized: true, databaseLoading: false });
     }
   },
 
   checkConfig: async () => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, databaseLoading: true });
     console.info('[Booklyn Auth] Re-checking environment variable configuration...');
     
     try {
@@ -245,7 +256,7 @@ export const useAuthStore = create(
       set({ error: getFriendlyAuthError(err) });
       return { isValid: false, issues: [err.message] };
     } finally {
-      set({ loading: false });
+      set({ loading: false, databaseLoading: false });
     }
   },
 
@@ -449,8 +460,8 @@ export const useAuthStore = create(
   name: 'booklyn-auth-storage',
   partialize: (state) => ({
     user: state.user,
-    initialized: state.initialized,
     isConfigured: state.isConfigured,
+    tablesReady: state.tablesReady,
   }),
 }
 )

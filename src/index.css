@@ -11,7 +11,7 @@
   body {
     @apply font-sans bg-booklyn-cream-50 text-booklyn-night-100 transition-colors duration-500 ease-in-out antialiased overflow-x-hidden;
   }
-  
+
   body.dark {
     @apply bg-booklyn-night-300 text-booklyn-cream-50;
   }
@@ -29,6 +29,7 @@
 }
 
 @layer utilities {
+
   /* Premium Glassmorphism styling classes */
   .glass-panel-light {
     @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-glass-light transition-all duration-300;
